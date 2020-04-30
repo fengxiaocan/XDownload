@@ -7,7 +7,5 @@ public interface OnDownloadListener{
 
     void onComplete(IDownloadRequest task);
 
-    void onDownloadComplete();
-
-    void onDownloadFailure();
+    void onError(IDownloadRequest request,Exception exception);
 }
