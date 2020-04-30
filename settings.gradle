@@ -1,2 +1,2 @@
-include ':app', ':javalibs'
+include ':app', ':androidlibs', ':javalib'
 rootProject.name='XDownload'
