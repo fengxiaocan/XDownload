@@ -1,83 +1,156 @@
 package com.xjava.down.impl;
 
-import com.xjava.down.listener.OnDownloadListener;
 import com.xjava.down.base.IDownloadRequest;
+import com.xjava.down.dispatch.Schedulers;
+import com.xjava.down.listener.OnDownloadConnectListener;
+import com.xjava.down.listener.OnDownloadListener;
 
-public class DownloadListenerDisposer implements OnDownloadListener{
-    final OnDownloadListener downloadListener;
+public class DownloadListenerDisposer implements OnDownloadConnectListener, OnDownloadListener{
+    private Schedulers schedulers;
+    private OnDownloadListener onDownloadListener;
+    private OnDownloadConnectListener onConnectListener;
 
-    public DownloadListenerDisposer(OnDownloadListener downloadListener){
-        this.downloadListener=downloadListener;
+    public DownloadListenerDisposer(
+            Schedulers schedulers,OnDownloadConnectListener onConnectListener,OnDownloadListener onDownloadListener)
+    {
+        this.schedulers=schedulers;
+        this.onConnectListener=onConnectListener;
+        this.onDownloadListener=onDownloadListener;
     }
 
     @Override
-    public void onPending(IDownloadRequest task){
-        if(downloadListener != null){
-            downloadListener.onPending(task);
+    public void onPending(final IDownloadRequest request){
+        if(onConnectListener==null){
+            return;
+        }
+        if(schedulers!=null){
+            schedulers.schedule(new Runnable(){
+                @Override
+                public void run(){
+                    onConnectListener.onPending(request);
+                }
+            });
+        } else{
+            onConnectListener.onPending(request);
         }
     }
 
     @Override
-    public void onStart(IDownloadRequest task){
-        if(downloadListener != null){
-            downloadListener.onStart(task);
+    public void onStart(final IDownloadRequest request){
+        if(onConnectListener==null){
+            return;
+        }
+        if(schedulers!=null){
+            schedulers.schedule(new Runnable(){
+                @Override
+                public void run(){
+                    onConnectListener.onStart(request);
+                }
+            });
+        } else{
+            onConnectListener.onStart(request);
         }
     }
 
     @Override
-    public void onPrepare(IDownloadRequest task){
-        if(downloadListener != null){
-            downloadListener.onPrepare(task);
+    public void onConnecting(final IDownloadRequest request){
+        if(onConnectListener==null){
+            return;
+        }
+        if(schedulers!=null){
+            schedulers.schedule(new Runnable(){
+                @Override
+                public void run(){
+                    onConnectListener.onConnecting(request);
+                }
+            });
+        } else{
+            onConnectListener.onConnecting(request);
         }
     }
 
     @Override
-    public void onProgress(float progress){
-        if(downloadListener != null){
-            downloadListener.onProgress(progress);
+    public void onCancel(final IDownloadRequest request){
+        if(onConnectListener==null){
+            return;
+        }
+        if(schedulers!=null){
+            schedulers.schedule(new Runnable(){
+                @Override
+                public void run(){
+                    onConnectListener.onCancel(request);
+                }
+            });
+        } else{
+            onConnectListener.onCancel(request);
         }
     }
 
     @Override
-    public void onPause(IDownloadRequest task){
-        if(downloadListener != null){
-            downloadListener.onPause(task);
+    public void onRetry(final IDownloadRequest request){
+        if(onConnectListener==null){
+            return;
+        }
+        if(schedulers!=null){
+            schedulers.schedule(new Runnable(){
+                @Override
+                public void run(){
+                    onConnectListener.onRetry(request);
+                }
+            });
+        } else{
+            onConnectListener.onRetry(request);
         }
     }
 
     @Override
-    public void onError(IDownloadRequest task,Exception exception){
-        if(downloadListener != null){
-            downloadListener.onError(task,exception);
+    public void onProgress(final IDownloadRequest request,final float progress,final int speed){
+        if(onDownloadListener==null){
+            return;
+        }
+        if(schedulers!=null){
+            schedulers.schedule(new Runnable(){
+                @Override
+                public void run(){
+                    onDownloadListener.onProgress(request,progress,speed);
+                }
+            });
+        } else{
+            onDownloadListener.onProgress(request,progress,speed);
         }
     }
 
     @Override
-    public void onRetry(IDownloadRequest task,Exception exception){
-        if(downloadListener != null){
-            downloadListener.onRetry(task,exception);
+    public void onComplete(final IDownloadRequest request){
+        if(onDownloadListener==null){
+            return;
         }
-    }
-
-
-    @Override
-    public void onComplete(IDownloadRequest task){
-        if(downloadListener != null){
-            downloadListener.onComplete(task);
-        }
-    }
-
-    @Override
-    public void onDownloadComplete(){
-        if(downloadListener != null){
-            downloadListener.onDownloadComplete();
+        if(schedulers!=null){
+            schedulers.schedule(new Runnable(){
+                @Override
+                public void run(){
+                    onDownloadListener.onComplete(request);
+                }
+            });
+        } else{
+            onDownloadListener.onComplete(request);
         }
     }
 
     @Override
-    public void onDownloadFailure(){
-        if(downloadListener != null){
-            downloadListener.onDownloadFailure();
+    public void onFailure(final IDownloadRequest request){
+        if(onDownloadListener==null){
+            return;
+        }
+        if(schedulers!=null){
+            schedulers.schedule(new Runnable(){
+                @Override
+                public void run(){
+                    onDownloadListener.onFailure(request);
+                }
+            });
+        } else{
+            onDownloadListener.onFailure(request);
         }
     }
 }

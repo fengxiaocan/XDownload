@@ -2,128 +2,95 @@ package com.x.test;
 
 
 import android.os.Bundle;
-import android.os.Handler;
+import android.text.format.Formatter;
 import android.util.Log;
 
 import androidx.appcompat.app.AppCompatActivity;
 
 import com.x.down.AndroidDownload;
+import com.xjava.down.XDownload;
 import com.xjava.down.base.IDownloadRequest;
+import com.xjava.down.listener.OnDownloadConnectListener;
 import com.xjava.down.listener.OnDownloadListener;
 
+import java.util.concurrent.RunnableFuture;
+
 public class MainActivity extends AppCompatActivity{
-    public static class MyHandler extends Handler{
-
-    }
-
     @Override
     protected void onCreate(Bundle savedInstanceState){
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
         AndroidDownload.init(this);
+        AndroidDownload.openLog(true);
 
-
-//        AndroidDownload.request("https://opser.api.dgtle.com/v1/video/emotion")
-//                       .post()
-//                       .setUserAgent("Dgtle/4.3 OkHttp/Android 10 Xiaomi MI 9/QKQ1.190825.002")
-//                       .addHeader("Authorization",
-//                                  "Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwczpcL1wvb3BzZXIuYXBpLmRndGxlLmNvbSIsImF1ZCI6Imh0dHBzOlwvXC9vcHNlci5hcGkuZGd0bGUuY29tIiwiaWF0IjoxNTg3OTY4ODUzLCJuYmYiOjE1ODc5Njg4NTMsImV4cCI6MTU5MDU2MDg1MiwicmZ0IjoxNTkwNTYwODUyLCJqdGkiOiI0Mm5qcTgzNCJ9.sD0kKHy_RecgZMwFNPaIkNBT_Axnh33GAdLZHNc09xE")
-////                       .requestBody(new FormBody().addFormData("vid","15").addFormData("emotion","1"))
-//                       .requestBody(new MultipartBody(MediaType.FORM)
-//                                            .addPart(MultipartBody.Part.createFormData("vid","15"))
-//                                            .addPart(MultipartBody.Part.createFormData("emotion","1")))
-//                       .setRequestListener(new RequestListener(){
+//        AndroidDownload.request("https://kan.jinbaozy.com/vodplayhtml/153-1-25.html")
+//                       .setOnResponseListener(new OnResponseListener(){
 //                           @Override
-//                           public void onPending(IRequest task){
-//                               Log.e("noah","onPending");
+//                           public void onResponse(IRequest request,Response response){
+//                               if(response.isSuccess()){
+//                                   Log.e("noah",response.result());
+//                               }else {
+//                                   Log.e("noah",response.error());
+//                               }
 //                           }
 //
 //                           @Override
-//                           public void onStart(IRequest task){
-//                               Log.e("noah","onStart");
-//                           }
-//
-//                           @Override
-//                           public void onConnecting(IRequest task){
-//                               Log.e("noah","onConnecting");
-//                           }
-//
-//                           @Override
-//                           public void onError(IRequest task,Exception exception){
-//                               Log.e("noah","onError");
-//                           }
-//
-//                           @Override
-//                           public void onRetry(IRequest task,Exception exception){
-//                               Log.e("noah","onRetry="+task.retryCount());
-//                           }
-//
-//                           @Override
-//                           public void onSuccess(IRequest task,String result){
-//                               Log.e("noah","onSuccess="+result);
-//                           }
-//
-//                           @Override
-//                           public void onFailure(IRequest task,String result){
-//                               Log.e("noah","onFailure="+result);
+//                           public void onError(IRequest request,Exception exception){
+//                               Log.e("noah","onError="+exception.getMessage());
 //                           }
 //                       })
 //                       .start();
-        AndroidDownload.download("https://download.jetbrains.8686c.com/idea/ideaIC-2020.1.dmg")
-                       .setDownListener(new OnDownloadListener(){
+        AndroidDownload.download("http://down.dgtle.com/app/dgtle4/DGTLE4.3_202005091824releases.apk")
+//                       .setUseMultiThread(false)
+                       .setDownloadListener(new OnDownloadListener(){
                            @Override
-                           public void onPending(IDownloadRequest task){
+                           public void onProgress(IDownloadRequest request,float progress,int speed){
+//                               if(progress>0.2f){
+//                                   XDownload.get().cancleDownload(request.tag());
+//                               }
+                               Log.e("noah",
+                                     "progress="+(progress*100)+" speed="+
+                                     (Formatter.formatShortFileSize(MainActivity.this,speed)));
+                           }
+
+                           @Override
+                           public void onComplete(IDownloadRequest request){
+                               Log.e("noah","下载完成");
+                           }
+
+                           @Override
+                           public void onFailure(IDownloadRequest request){
+                               Log.e("noah","下载失败");
+                           }
+                       })
+                       .setConnectListener(new OnDownloadConnectListener(){
+                           @Override
+                           public void onPending(IDownloadRequest request){
                                Log.e("noah","onPending");
                            }
 
                            @Override
-                           public void onStart(IDownloadRequest task){
+                           public void onStart(IDownloadRequest request){
                                Log.e("noah","onStart");
                            }
 
                            @Override
-                           public void onPrepare(IDownloadRequest task){
-                               Log.e("noah","onPrepare");
+                           public void onConnecting(IDownloadRequest request){
+                               Log.e("noah","onConnecting");
                            }
 
                            @Override
-                           public void onProgress(float progress){
-                               Log.e("noah","onProgress="+(int)(progress*100));
+                           public void onCancel(IDownloadRequest request){
+                               Log.e("noah","onCancel");
                            }
 
                            @Override
-                           public void onPause(IDownloadRequest task){
-                               Log.e("noah","onPause");
-                           }
-
-                           @Override
-                           public void onError(IDownloadRequest task,Exception exception){
-                               Log.e("noah","onError");
-                           }
-
-                           @Override
-                           public void onRetry(IDownloadRequest task,Exception exception){
+                           public void onRetry(IDownloadRequest request){
                                Log.e("noah","onRetry");
-                           }
-
-                           @Override
-                           public void onComplete(IDownloadRequest task){
-                               Log.e("noah","onComplete");
-                           }
-
-                           @Override
-                           public void onDownloadComplete(){
-                               Log.e("noah","onDownloadComplete");
-                           }
-
-                           @Override
-                           public void onDownloadFailure(){
-                               Log.e("noah","onDownloadFailure");
                            }
                        })
                        .start();
-//        String size=Formatter.formatFileSize(this,1024*1024*100);
     }
 
 }

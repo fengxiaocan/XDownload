@@ -1,33 +1,52 @@
 package com.xjava.down.task;
 
 
-import com.xjava.down.core.XDownloadRequest;
-import com.xjava.down.impl.MultiDisposer;
-import com.xjava.down.listener.OnDownloadListener;
-import com.xjava.down.made.Block;
 import com.xjava.down.ExecutorGather;
+import com.xjava.down.XDownload;
+import com.xjava.down.base.IConnectRequest;
+import com.xjava.down.base.IDownloadRequest;
+import com.xjava.down.core.XDownloadRequest;
+import com.xjava.down.impl.DownloadListenerDisposer;
+import com.xjava.down.impl.MultiDisposer;
+import com.xjava.down.listener.OnDownloadConnectListener;
+import com.xjava.down.listener.OnDownloadListener;
+import com.xjava.down.made.AutoRetryRecorder;
+import com.xjava.down.made.Block;
 import com.xjava.down.tool.XDownUtils;
 
 import java.io.File;
 import java.net.HttpURLConnection;
+import java.util.concurrent.Future;
 import java.util.concurrent.ThreadPoolExecutor;
 
-public final class DownloadThreadRequest extends HttpRequestTask{
+final class DownloadThreadRequest extends BaseHttpRequest implements IDownloadRequest, IConnectRequest{
     private static final String BLOCK_FILE_NAME="block";
-    protected ThreadPoolExecutor threadPoolExecutor;
-    protected final OnDownloadListener downloadListener;
 
-    public DownloadThreadRequest(XDownloadRequest request,OnDownloadListener downloadListener){
-        super(request,);
-        this.downloadListener=downloadListener;
+    protected ThreadPoolExecutor threadPoolExecutor;
+    protected final XDownloadRequest httpRequest;
+    protected final DownloadListenerDisposer listenerDisposer;
+    protected volatile Future taskFuture;
+    protected volatile long contentLength;
+
+    public DownloadThreadRequest(
+            XDownloadRequest request,OnDownloadConnectListener onConnectListeners,OnDownloadListener downloadListeners)
+    {
+        super(new AutoRetryRecorder(request.isUseAutoRetry(),
+                                    request.getAutoRetryTimes(),
+                                    request.getAutoRetryInterval()));
+        this.httpRequest=request;
+        this.listenerDisposer=new DownloadListenerDisposer(request.getSchedulers(),
+                                                           onConnectListeners,
+                                                           downloadListeners);
+    }
+
+    public final void setTaskFuture(Future taskFuture){
+        this.taskFuture=taskFuture;
     }
 
     @Override
     protected void httpRequest() throws Exception{
-        XDownloadRequest request=(XDownloadRequest)this.httpRequest;
-        HttpURLConnection http=request.buildConnect();
-        //预备中
-        listenerDisposer.onConnecting(this);
+        HttpURLConnection http=httpRequest.buildConnect();
 
         http.getResponseCode();
 
@@ -35,20 +54,19 @@ public final class DownloadThreadRequest extends HttpRequestTask{
         try{
             contentLength=http.getContentLengthLong();
         } catch(Exception e){
+            XDownUtils.error(e);
             contentLength=http.getContentLength();
         }
         int code=http.getResponseCode();
 
 //        Headers headers=getHeaders(http);
 
-
-        File file=XDownUtils.getSaveFile(request);
+        File file=XDownUtils.getSaveFile(httpRequest);
         if(file.exists()){
             if(file.length()==contentLength){
-                if(downloadListener!=null){
-                    downloadListener.onProgress(1);
-                    downloadListener.onDownloadComplete();
-                }
+                listenerDisposer.onProgress(this,1,0);
+                listenerDisposer.onComplete(this);
+
                 http.disconnect();
                 return;
             } else{
@@ -56,15 +74,34 @@ public final class DownloadThreadRequest extends HttpRequestTask{
             }
         }
 
-        if(contentLength>0&&request.isUseMultiThread()){
+        if(contentLength>0&&httpRequest.isUseMultiThread()){
             multiThreadRun(contentLength);
         } else{
             //独立下载
-            SingleDownloadThreadTask threadTask=new SingleDownloadThreadTask(request,downloadListener,contentLength);
+            SingleDownloadThreadTask threadTask=new SingleDownloadThreadTask(httpRequest,
+                                                                             listenerDisposer,
+                                                                             contentLength);
             if(!threadTask.checkComplete()){
-                ExecutorGather.executorQueue().submit(threadTask);
+                Future<?> future=ExecutorGather.executorQueue().submit(threadTask);
+                threadTask.setTaskFuture(future);
+                XDownload.get().addDownload(httpRequest.getTag(),threadTask);
             }
         }
+    }
+
+    @Override
+    protected void onRetry(){
+        listenerDisposer.onRetry(this);
+    }
+
+    @Override
+    protected void onError(Exception e){
+        listenerDisposer.onFailure(this);
+    }
+
+    @Override
+    protected void onCancel(){
+        listenerDisposer.onCancel(this);
     }
 
     /**
@@ -73,7 +110,6 @@ public final class DownloadThreadRequest extends HttpRequestTask{
      * @param contentLength
      */
     private void multiThreadRun(final long contentLength){
-        XDownloadRequest request=(XDownloadRequest)this.httpRequest;
         if(threadPoolExecutor!=null){
             //isShutDown：当调用shutdown()或shutdownNow()方法后返回为true。 
             //isTerminated：当调用shutdown()方法后，并且所有提交的任务完成后返回为true;
@@ -88,7 +124,7 @@ public final class DownloadThreadRequest extends HttpRequestTask{
             }
         }
         //获取上次配置,决定断点下载不出错
-        File cacheDir=XDownUtils.getTempCacheDir(request);
+        File cacheDir=XDownUtils.getTempCacheDir(httpRequest);
         File blockFile=new File(cacheDir,BLOCK_FILE_NAME);
         //是否需要删除之前的临时文件
         boolean isDelectTemp=false;
@@ -112,12 +148,12 @@ public final class DownloadThreadRequest extends HttpRequestTask{
         }
         blockLength=block.getBlockLength();
         threadCount=block.getThreadCount();
-        if(!request.isUseBreakpointResume()){
+        if(!httpRequest.isUseBreakpointResume()){
             isDelectTemp=true;
         }
-        threadPoolExecutor=ExecutorGather.newSubtaskQueue(request.getMultiThreadCount());
+        threadPoolExecutor=ExecutorGather.newSubtaskQueue(httpRequest.getMultiThreadCount());
 
-        final MultiDisposer disposer=new MultiDisposer(request,threadCount,downloadListener);
+        final MultiDisposer disposer=new MultiDisposer(httpRequest,threadCount,listenerDisposer);
 
         long start=0, end=-1;
         for(int index=0;index<threadCount;index++){
@@ -128,12 +164,12 @@ public final class DownloadThreadRequest extends HttpRequestTask{
                 end=end+blockLength;
             }
             //保存的临时文件
-            File file=new File(cacheDir,request.getIdentifier()+"_temp_"+index);
+            File file=new File(cacheDir,httpRequest.getIdentifier()+"_temp_"+index);
             if(isDelectTemp&&file.exists()){
                 //需要删除之前的临时缓存文件
                 file.delete();
             }
-            MultiDownloadThreadTask task=new MultiDownloadThreadTask(request,
+            MultiDownloadThreadTask task=new MultiDownloadThreadTask(httpRequest,
                                                                      file,
                                                                      autoRetryRecorder,
                                                                      index,
@@ -142,9 +178,11 @@ public final class DownloadThreadRequest extends HttpRequestTask{
                                                                      end,
                                                                      disposer);
             disposer.addTask(index,task);
-            threadPoolExecutor.execute(task);
+            Future<?> submit=threadPoolExecutor.submit(task);
+            XDownload.get().addDownload(httpRequest.getTag(),task);
+            task.setTaskFuture(submit);
         }
-        disposer.onProgress(contentLength,0);
+        disposer.onProgress(this,contentLength,0);
         threadPoolExecutor.shutdown();
     }
 
@@ -156,14 +194,13 @@ public final class DownloadThreadRequest extends HttpRequestTask{
      * @return
      */
     protected Block createBlock(File blockFile,final long contentLength){
-        XDownloadRequest request=(XDownloadRequest)this.httpRequest;
         final long blockLength;
         //使用的线程数
         final int threadCount;
 
-        final int configThreadCount=request.getMultiThreadCount();
-        final int threadMaxSize=request.getMultiThreadMaxDownloadSize();
-        final int threadMinSize=request.getMultiThreadMinDownloadSize();
+        final int configThreadCount=httpRequest.getMultiThreadCount();
+        final int threadMaxSize=httpRequest.getMultiThreadMaxDownloadSize();
+        final int threadMinSize=httpRequest.getMultiThreadMinDownloadSize();
         //最大的数量
         final long maxLength=configThreadCount*threadMaxSize;
         final long minLength=configThreadCount*threadMinSize;
@@ -186,5 +223,49 @@ public final class DownloadThreadRequest extends HttpRequestTask{
         Block block=new Block(contentLength,blockLength,threadCount);
         XDownUtils.writeObject(blockFile,block);
         return block;
+    }
+
+    @Override
+    public String tag(){
+        return httpRequest.getTag();
+    }
+
+    @Override
+    public String url(){
+        return httpRequest.getConnectUrl();
+    }
+
+    @Override
+    public boolean cancel(){
+        isCancel=true;
+        if(taskFuture!=null){
+            return taskFuture.cancel(true);
+        }
+        return false;
+    }
+
+    @Override
+    public int retryCount(){
+        return autoRetryRecorder.getRetryCount();
+    }
+
+    @Override
+    public XDownloadRequest request(){
+        return httpRequest;
+    }
+
+    @Override
+    public String getFilePath(){
+        return XDownUtils.getSaveFile(httpRequest).getAbsolutePath();
+    }
+
+    @Override
+    public long getTotalLength(){
+        return contentLength;
+    }
+
+    @Override
+    public long getSofarLength(){
+        return 0;
     }
 }

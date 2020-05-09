@@ -1,10 +1,11 @@
 package com.xjava.down.task;
 
 
-import com.xjava.down.base.HttpConnect;
+import com.xjava.down.XDownload;
+import com.xjava.down.base.IConnectRequest;
 import com.xjava.down.base.IRequest;
 import com.xjava.down.base.RequestBody;
-import com.xjava.down.base.RequestStatus;
+import com.xjava.down.core.HttpConnect;
 import com.xjava.down.core.XHttpRequest;
 import com.xjava.down.data.Headers;
 import com.xjava.down.data.MediaType;
@@ -15,27 +16,22 @@ import com.xjava.down.listener.OnResponseListener;
 import com.xjava.down.made.AutoRetryRecorder;
 
 import java.net.HttpURLConnection;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
 import java.util.concurrent.Future;
 
-public class HttpRequestTask extends BaseHttpRequest implements IRequest{
+class HttpRequestTask extends BaseHttpRequest implements IRequest, IConnectRequest{
 
     protected final XHttpRequest httpRequest;
     protected final RequestListenerDisposer listenerDisposer;
-    protected volatile int status=0;
     protected Future taskFuture;
 
     public HttpRequestTask(
-            XHttpRequest request,List<OnConnectListener> connectListeners,List<OnResponseListener> onResponseListeners)
+            XHttpRequest request,OnConnectListener connectListeners,OnResponseListener onResponseListeners)
     {
         super(new AutoRetryRecorder(request.isUseAutoRetry(),
                                     request.getAutoRetryTimes(),
                                     request.getAutoRetryInterval()));
-        this.listenerDisposer=new RequestListenerDisposer(connectListeners,onResponseListeners);
+        this.listenerDisposer=new RequestListenerDisposer(request.getSchedulers(),connectListeners,onResponseListeners);
         this.httpRequest=request;
-        status=RequestStatus.PENDING;
         listenerDisposer.onPending(this);
     }
 
@@ -45,15 +41,14 @@ public class HttpRequestTask extends BaseHttpRequest implements IRequest{
 
     @Override
     public void run(){
-        status=RequestStatus.STARTED;
         listenerDisposer.onStart(this);
         super.run();
+        XDownload.get().removeRequest(httpRequest.getTag());
     }
 
     @Override
     protected void httpRequest() throws Exception{
         HttpURLConnection http=httpRequest.buildConnect();
-        status=RequestStatus.CONNECTED;
         //预备中
         listenerDisposer.onConnecting(this);
 
@@ -80,49 +75,29 @@ public class HttpRequestTask extends BaseHttpRequest implements IRequest{
         if(isSuccess(code)){
             String stream=readStringStream(http.getInputStream());
             http.disconnect();
-            status=RequestStatus.COMPLETED;
             listenerDisposer.onResponse(this,Response.builderSuccess(stream,code,headers));
         } else{
             String error=readStringStream(http.getErrorStream());
             http.disconnect();
-            status=RequestStatus.WARN;
             listenerDisposer.onResponse(this,Response.builderFailure(code,headers,error));
             retryToRun();
         }
     }
 
-    protected Headers getHeaders(HttpURLConnection http){
-        Headers headers=new Headers();
-        Map<String,List<String>> map=http.getHeaderFields();
-//        System.out.println("显示响应Header信息...");
-        Set<String> set=map.keySet();
-        for(String key: set){
-            List<String> list=map.get(key);
-            if(list!=null&&list.size()>0){
-                if(list.size()==1){
-                    headers.addHeader(key,list.get(0));
-                } else{
-                    headers.addHeader(key,list.toString());
-                }
-            } else{
-                headers.addHeader(key,"");
-            }
-        }
-        return headers;
-    }
-
     @Override
     protected void onRetry(){
-        status=RequestStatus.RETRY;
         listenerDisposer.onRetry(this);
     }
 
     @Override
     protected void onError(Exception e){
-        status=RequestStatus.ERROR;
         listenerDisposer.onError(this,e);
     }
 
+    @Override
+    protected void onCancel(){
+        listenerDisposer.onCancel(this);
+    }
 
     @Override
     public HttpConnect request(){
@@ -140,8 +115,12 @@ public class HttpRequestTask extends BaseHttpRequest implements IRequest{
     }
 
     @Override
-    public int status(){
-        return 0;
+    public boolean cancel(){
+        isCancel=true;
+        if(taskFuture!=null){
+            return taskFuture.cancel(true);
+        }
+        return false;
     }
 
     @Override

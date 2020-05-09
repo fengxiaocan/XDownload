@@ -2,7 +2,6 @@ package com.xjava.down;
 
 
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
@@ -43,7 +42,11 @@ public class ExecutorGather{
 
     public static synchronized ExecutorService newThreadExecutor(){
         if(newExecutor==null){
-            newExecutor=Executors.newCachedThreadPool();
+            newExecutor=new ThreadPoolExecutor(XDownload.get().getMaxThreadCount(),
+                                               Integer.MAX_VALUE,
+                                               MAIN_TASK_KEEP_ALIVE_TIME,
+                                               TimeUnit.SECONDS,
+                                               new LinkedBlockingQueue<Runnable>());
         }
         return newExecutor;
     }

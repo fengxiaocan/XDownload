@@ -9,5 +9,7 @@ public interface OnConnectListener{
 
     void onConnecting(IRequest request);
 
+    void onCancel(IRequest request);
+
     void onRetry(IRequest request);
 }

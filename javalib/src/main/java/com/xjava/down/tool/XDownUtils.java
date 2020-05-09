@@ -131,10 +131,14 @@ public class XDownUtils{
             subUrl=url;
         }
         int index2=subUrl.lastIndexOf(".");
+        int index3=subUrl.lastIndexOf("/");
+        if(index3>index2){
+            return ".unknown";
+        }
         if(index2>0){
             return subUrl.substring(index2);
         } else{
-            return "";
+            return ".unknown";
         }
     }
 
@@ -212,6 +216,23 @@ public class XDownUtils{
             return new File(request.getCacheDir(),XDownUtils.getFileName(request));
         } else{
             return new File(request.getCacheDir(),request.getIdentifier()+"_temp");
+        }
+    }
+
+    public static void error(Exception e){
+        if(XDownload.get().log()!=null){
+            XDownload.get().log().error(e);
+        }
+    }
+
+    public static void info(String info){
+        if(XDownload.get().log()!=null){
+            XDownload.get().log().info(info);
+        }
+    }
+    public static void warn(String info){
+        if(XDownload.get().log()!=null){
+            XDownload.get().log().warn(info);
         }
     }
 }

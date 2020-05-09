@@ -33,7 +33,6 @@ abstract class HttpDownloadRequest extends BaseHttpRequest{
 
     protected void onProgress(int length){ }
 
-
     protected boolean copyFile(File inputFile,File outputFile,boolean isDelect) throws IOException{
         if(inputFile==null||outputFile==null){
             return false;

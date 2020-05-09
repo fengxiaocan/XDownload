@@ -1,18 +1,16 @@
 package com.xjava.down.core;
 
-import com.xjava.down.ExecutorGather;
 import com.xjava.down.XDownload;
-import com.xjava.down.base.HttpDownload;
-import com.xjava.down.base.RequestBody;
+import com.xjava.down.dispatch.Schedulers;
+import com.xjava.down.listener.OnDownloadConnectListener;
 import com.xjava.down.listener.OnDownloadListener;
-import com.xjava.down.listener.OnConnectListener;
-import com.xjava.down.listener.OnResponseListener;
-import com.xjava.down.task.DownloadThreadRequest;
+import com.xjava.down.task.ThreadTaskFactory;
 import com.xjava.down.tool.XDownUtils;
 
-import java.util.concurrent.Future;
+import java.net.HttpURLConnection;
+import java.net.URL;
 
-public final class XDownloadRequest extends XHttpRequest implements HttpDownload{
+public final class XDownloadRequest extends BaseRequest implements HttpDownload{
     protected String saveFile;//文件保存位置
     protected String cacheDir=XDownload.get().config().getCacheDir();//默认UA
     //默认下载的多线程数
@@ -29,7 +27,8 @@ public final class XDownloadRequest extends XHttpRequest implements HttpDownload
     protected boolean ignoredProgress=XDownload.get().config().isIgnoredProgress();
     //更新进度条的间隔
     protected int updateProgressTimes=XDownload.get().config().getUpdateProgressTimes();
-    protected OnDownloadListener downloadListener;
+    protected OnDownloadListener onDownloadListener;
+    protected OnDownloadConnectListener onDownloadConnectListener;
 
     public static XDownloadRequest with(String url){
         return new XDownloadRequest(url);
@@ -99,8 +98,14 @@ public final class XDownloadRequest extends XHttpRequest implements HttpDownload
     }
 
     @Override
-    public HttpDownload setDownListener(OnDownloadListener listener){
-        this.downloadListener=listener;
+    public HttpDownload setDownloadListener(OnDownloadListener listener){
+        onDownloadListener=listener;
+        return this;
+    }
+
+    @Override
+    public HttpDownload setConnectListener(OnDownloadConnectListener listener){
+        onDownloadConnectListener=listener;
         return this;
     }
 
@@ -136,11 +141,6 @@ public final class XDownloadRequest extends XHttpRequest implements HttpDownload
     }
 
     @Override
-    public HttpDownload setUseCaches(boolean useCaches){
-        return this;
-    }
-
-    @Override
     public HttpDownload setUseAutoRetry(boolean useAutoRetry){
         return (HttpDownload)super.setUseAutoRetry(useAutoRetry);
     }
@@ -161,28 +161,8 @@ public final class XDownloadRequest extends XHttpRequest implements HttpDownload
     }
 
     @Override
-    public HttpDownload addOnResponseListener(OnResponseListener listener){
-        return (HttpDownload)super.addOnResponseListener(listener);
-    }
-
-    @Override
-    public HttpDownload addOnConnectListener(OnConnectListener listener){
-        return (HttpDownload)super.addOnConnectListener(listener);
-    }
-
-    @Override
-    public HttpDownload post(){
-        return (HttpDownload)super.post();
-    }
-
-    @Override
-    public HttpDownload setRequestMothod(Mothod mothod){
-        return (HttpDownload)super.setRequestMothod(mothod);
-    }
-
-    @Override
-    public HttpDownload requestBody(RequestBody body){
-        return (HttpDownload)super.requestBody(body);
+    public HttpDownload scheduleOn(Schedulers schedulers){
+        return (HttpDownload)super.scheduleOn(schedulers);
     }
 
     public int getMultiThreadCount(){
@@ -213,11 +193,44 @@ public final class XDownloadRequest extends XHttpRequest implements HttpDownload
         return updateProgressTimes;
     }
 
+    public OnDownloadListener getOnDownloadListener(){
+        return onDownloadListener;
+    }
+
+    public OnDownloadConnectListener getOnDownloadConnectListener(){
+        return onDownloadConnectListener;
+    }
+
     @Override
     public String start(){
-        DownloadThreadRequest requestTask=new DownloadThreadRequest(this,onConnectListeners,onResponseListeners,downloadListener);
-        Future future=ExecutorGather.newThreadExecutor().submit(requestTask);
-        requestTask.setTaskFuture(future);
+        if(isUseMultiThread&&multiThreadCount>1){
+            ThreadTaskFactory.createDownloadThreadRequest(this);
+        } else{
+            ThreadTaskFactory.createSingleDownloadTask(this);
+        }
         return getTag();
+    }
+
+    public HttpURLConnection buildConnect() throws Exception{
+        URL url=new URL(getConnectUrl());
+        HttpURLConnection http=(HttpURLConnection)url.openConnection();
+        http.setRequestMethod("GET");
+        //设置http请求头
+        http.setRequestProperty("Connection","Keep-Alive");
+        if(headers!=null){
+            for(String key: headers.keySet()){
+                http.setRequestProperty(key,headers.getValue(key));
+            }
+        }
+        if(userAgent!=null){
+            http.setRequestProperty("User-Agent",userAgent);
+        }
+        if(connectTimeOut>0){
+            http.setConnectTimeout(connectTimeOut);
+            http.setReadTimeout(connectTimeOut);
+        }
+        http.setUseCaches(false);
+        http.setDoInput(true);
+        return http;
     }
 }

@@ -2,97 +2,141 @@ package com.xjava.down.impl;
 
 import com.xjava.down.base.IRequest;
 import com.xjava.down.data.Response;
+import com.xjava.down.dispatch.Schedulers;
 import com.xjava.down.listener.OnConnectListener;
 import com.xjava.down.listener.OnResponseListener;
-
-import java.util.List;
+import com.xjava.down.tool.XDownUtils;
 
 public class RequestListenerDisposer implements OnConnectListener, OnResponseListener{
-    private List<OnConnectListener> connectListeners;
-    private List<OnResponseListener> onResponseListeners;
+    private Schedulers schedulers;
+    private OnResponseListener onResponseListener;
+    private OnConnectListener onConnectListener;
 
     public RequestListenerDisposer(
-            List<OnConnectListener> connectListeners,List<OnResponseListener> onResponseListeners)
+            Schedulers schedulers,OnConnectListener onConnectListener,OnResponseListener onResponseListener)
     {
-        this.connectListeners=connectListeners;
-        this.onResponseListeners=onResponseListeners;
+        this.schedulers=schedulers;
+        this.onResponseListener=onResponseListener;
+        this.onConnectListener=onConnectListener;
     }
 
-    public synchronized void addOnConnectListener(OnConnectListener listener){
-        if(connectListeners!=null){
-            connectListeners.add(listener);
+    @Override
+    public void onPending(final IRequest request){
+        if(onConnectListener==null){
+            return;
         }
-    }
-
-    public synchronized void removeOnConnectListener(OnConnectListener listener){
-        if(connectListeners!=null){
-            connectListeners.remove(listener);
-        }
-    }
-
-    public synchronized void addOnResponseListener(OnResponseListener listener){
-        if(onResponseListeners!=null){
-            onResponseListeners.add(listener);
-        }
-    }
-
-    public synchronized void removeOnResponseListener(OnResponseListener listener){
-        if(onResponseListeners!=null){
-            onResponseListeners.remove(listener);
+        if(schedulers!=null){
+            schedulers.schedule(new Runnable(){
+                @Override
+                public void run(){
+                    onConnectListener.onConnecting(request);
+                }
+            });
+        } else{
+            onConnectListener.onConnecting(request);
         }
     }
 
     @Override
-    public void onPending(IRequest request){
-        if(connectListeners!=null){
-            for(OnConnectListener listener: connectListeners){
-                listener.onPending(request);
-            }
+    public void onStart(final IRequest request){
+        if(onConnectListener==null){
+            return;
+        }
+        if(schedulers!=null){
+            schedulers.schedule(new Runnable(){
+                @Override
+                public void run(){
+                    onConnectListener.onStart(request);
+                }
+            });
+        } else{
+            onConnectListener.onStart(request);
         }
     }
 
     @Override
-    public void onStart(IRequest request){
-        if(connectListeners!=null){
-            for(OnConnectListener listener: connectListeners){
-                listener.onStart(request);
-            }
+    public void onConnecting(final IRequest request){
+        if(onConnectListener==null){
+            return;
+        }
+        if(schedulers!=null){
+            schedulers.schedule(new Runnable(){
+                @Override
+                public void run(){
+                    onConnectListener.onConnecting(request);
+                }
+            });
+        } else{
+            onConnectListener.onConnecting(request);
         }
     }
 
     @Override
-    public void onConnecting(IRequest request){
-        if(connectListeners!=null){
-            for(OnConnectListener listener: connectListeners){
-                listener.onConnecting(request);
-            }
+    public void onCancel(final IRequest request){
+        if(onConnectListener==null){
+            return;
+        }
+        if(schedulers!=null){
+            schedulers.schedule(new Runnable(){
+                @Override
+                public void run(){
+                    onConnectListener.onCancel(request);
+                }
+            });
+        } else{
+            onConnectListener.onCancel(request);
         }
     }
 
     @Override
-    public void onRetry(IRequest request){
-        if(connectListeners!=null){
-            for(OnConnectListener listener: connectListeners){
-                listener.onRetry(request);
-            }
+    public void onRetry(final IRequest request){
+        if(onConnectListener==null){
+            return;
+        }
+        if(schedulers!=null){
+            schedulers.schedule(new Runnable(){
+                @Override
+                public void run(){
+                    onConnectListener.onRetry(request);
+                }
+            });
+        } else{
+            onConnectListener.onRetry(request);
         }
     }
 
     @Override
-    public void onResponse(IRequest request,Response response){
-        if(onResponseListeners!=null){
-            for(OnResponseListener listener: onResponseListeners){
-                listener.onResponse(request,response);
-            }
+    public void onResponse(final IRequest request,final Response response){
+        if(onResponseListener==null){
+            return;
+        }
+        if(schedulers!=null){
+            schedulers.schedule(new Runnable(){
+                @Override
+                public void run(){
+                    onResponseListener.onResponse(request,response);
+                }
+            });
+        } else{
+            onResponseListener.onResponse(request,response);
         }
     }
 
     @Override
-    public void onError(IRequest request,Exception exception){
-        if(onResponseListeners!=null){
-            for(OnResponseListener listener: onResponseListeners){
-                listener.onError(request,exception);
-            }
+    public void onError(final IRequest request,final Exception exception){
+        XDownUtils.error(exception);
+        if(onResponseListener==null){
+            return;
+        }
+        if(schedulers!=null){
+            schedulers.schedule(new Runnable(){
+                @Override
+                public void run(){
+                    onResponseListener.onError(request,exception);
+                }
+            });
+        } else{
+            onResponseListener.onError(request,exception);
         }
     }
 }

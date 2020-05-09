@@ -1,35 +1,49 @@
-package com.xjava.down.base;
+package com.xjava.down.core;
 
+import com.xjava.down.base.RequestBody;
+import com.xjava.down.dispatch.Schedulers;
 import com.xjava.down.listener.OnConnectListener;
 import com.xjava.down.listener.OnResponseListener;
 
-public interface HttpConnect{
+public interface HttpConnect extends IConnect{
 
+    @Override
     HttpConnect setTag(String tag);
 
+    @Override
     HttpConnect addParams(String name,String value);
 
+    @Override
     HttpConnect addHeader(String name,String value);
 
+    @Override
     HttpConnect setUserAgent(String userAgent);
 
+    @Override
     HttpConnect setConnectTimeOut(int connectTimeOut);
+
+    @Override
+    HttpConnect setUseAutoRetry(boolean useAutoRetry);
+
+    @Override
+    HttpConnect setAutoRetryTimes(int autoRetryTimes);
+
+    @Override
+    HttpConnect setAutoRetryInterval(int autoRetryInterval);
+
+    @Override
+    HttpConnect setWifiRequired(boolean wifiRequired);
+
+    @Override
+    HttpConnect scheduleOn(Schedulers schedulers);
 
     HttpConnect setUseCaches(boolean useCaches);
 
-    HttpConnect setUseAutoRetry(boolean useAutoRetry);
-
-    HttpConnect setAutoRetryTimes(int autoRetryTimes);
-
-    HttpConnect setAutoRetryInterval(int autoRetryInterval);
-
-    HttpConnect setWifiRequired(boolean wifiRequired);
-
     HttpConnect setRequestMothod(Mothod mothod);
 
-    HttpConnect addOnResponseListener(OnResponseListener listener);
+    HttpConnect setOnResponseListener(OnResponseListener listener);
 
-    HttpConnect addOnConnectListener(OnConnectListener listener);
+    HttpConnect setOnConnectListener(OnConnectListener listener);
 
     HttpConnect post();
 

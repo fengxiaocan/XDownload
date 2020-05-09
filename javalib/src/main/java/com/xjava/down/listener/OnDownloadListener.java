@@ -3,9 +3,10 @@ package com.xjava.down.listener;
 import com.xjava.down.base.IDownloadRequest;
 
 public interface OnDownloadListener{
-    void onProgress(float progress);
 
-    void onComplete(IDownloadRequest task);
+    void onProgress(IDownloadRequest request,float progress,int speed);
 
-    void onError(IDownloadRequest request,Exception exception);
+    void onComplete(IDownloadRequest request);
+
+    void onFailure(IDownloadRequest request);
 }

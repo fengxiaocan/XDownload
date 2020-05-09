@@ -1,11 +1,10 @@
-package com.xjava.down.base;
+package com.xjava.down.core;
 
+import com.xjava.down.dispatch.Schedulers;
+import com.xjava.down.listener.OnDownloadConnectListener;
 import com.xjava.down.listener.OnDownloadListener;
-import com.xjava.down.listener.OnConnectListener;
-import com.xjava.down.listener.OnResponseListener;
 
-public interface HttpDownload extends HttpConnect{
-    HttpDownload setTag(String tag);
+public interface HttpDownload extends IConnect{
 
     HttpDownload setSaveFile(String saveFile);
 
@@ -25,7 +24,12 @@ public interface HttpDownload extends HttpConnect{
 
     HttpDownload setUseBreakpointResume(boolean useBreakpointResume);
 
-    HttpDownload setDownListener(OnDownloadListener listener);
+    HttpDownload setDownloadListener(OnDownloadListener listener);
+
+    HttpDownload setConnectListener(OnDownloadConnectListener listener);
+
+    @Override
+    HttpDownload setTag(String tag);
 
     @Override
     HttpDownload addParams(String name,String value);
@@ -40,9 +44,6 @@ public interface HttpDownload extends HttpConnect{
     HttpDownload setConnectTimeOut(int connectTimeOut);
 
     @Override
-    HttpDownload setUseCaches(boolean useCaches);
-
-    @Override
     HttpDownload setUseAutoRetry(boolean useAutoRetry);
 
     @Override
@@ -55,17 +56,5 @@ public interface HttpDownload extends HttpConnect{
     HttpDownload setWifiRequired(boolean wifiRequired);
 
     @Override
-    HttpDownload setRequestMothod(Mothod mothod);
-
-    @Override
-    HttpDownload requestBody(RequestBody body);
-
-    @Override
-    HttpDownload addOnResponseListener(OnResponseListener listener);
-
-    @Override
-    HttpDownload addOnConnectListener(OnConnectListener listener);
-
-    @Override
-    HttpDownload post();
+    HttpDownload scheduleOn(Schedulers schedulers);
 }

@@ -1,11 +1,12 @@
 package com.xjava.down.task;
 
 
+import com.xjava.down.XDownload;
+import com.xjava.down.base.IConnectRequest;
 import com.xjava.down.base.IDownloadRequest;
 import com.xjava.down.core.XDownloadRequest;
 import com.xjava.down.impl.DownloadListenerDisposer;
 import com.xjava.down.impl.ProgressDisposer;
-import com.xjava.down.listener.OnDownloadListener;
 import com.xjava.down.made.AutoRetryRecorder;
 import com.xjava.down.tool.XDownUtils;
 
@@ -13,24 +14,26 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.net.ConnectException;
 import java.net.HttpURLConnection;
+import java.util.concurrent.Future;
 
-class SingleDownloadThreadTask extends HttpDownloadRequest implements IDownloadRequest{
+final class SingleDownloadThreadTask extends HttpDownloadRequest implements IDownloadRequest, IConnectRequest{
     private volatile XDownloadRequest request;
     private final DownloadListenerDisposer listenerDisposer;
     private final ProgressDisposer progressDisposer;
     private final File cacheFile;
-    private final long contentLength;
 
+    private volatile long contentLength;
     private volatile long sSofarLength=0;
-    private volatile int sResonseCode=0;
+    private volatile Future taskFuture;
+    private volatile int speedLength=0;
 
-    public SingleDownloadThreadTask(XDownloadRequest request,OnDownloadListener listener,long contentLength){
+    public SingleDownloadThreadTask(XDownloadRequest request,DownloadListenerDisposer listener,long contentLength){
         super(new AutoRetryRecorder(request.isUseAutoRetry(),
                                     request.getAutoRetryTimes(),
                                     request.getAutoRetryInterval()));
         this.request=request;
         this.contentLength=contentLength;
-        this.listenerDisposer=new DownloadListenerDisposer(listener);
+        this.listenerDisposer=listener;
         this.progressDisposer=new ProgressDisposer(request.isIgnoredProgress(),
                                                    request.getUpdateProgressTimes(),
                                                    listener);
@@ -38,20 +41,27 @@ class SingleDownloadThreadTask extends HttpDownloadRequest implements IDownloadR
         listenerDisposer.onPending(this);
     }
 
+    public final void setTaskFuture(Future taskFuture){
+        this.taskFuture=taskFuture;
+    }
+
     /**
      * 检测是否已经下载完成
+     *
      * @return
      */
     public boolean checkComplete(){
         File file=XDownUtils.getSaveFile(request);
-        if(file.exists()){
-            if(file.length()==contentLength&&contentLength>0){
-                listenerDisposer.onProgress(1);
-                listenerDisposer.onComplete(this);
-                listenerDisposer.onDownloadComplete();
-                return true;
-            } else{
-                file.delete();
+        if(contentLength>0){
+            if(file.exists()){
+                if(file.length()==contentLength){
+                    listenerDisposer.onProgress(this,1,speedLength);
+                    speedLength=0;
+                    listenerDisposer.onComplete(this);
+                    return true;
+                } else{
+                    file.delete();
+                }
             }
         }
         return false;
@@ -61,6 +71,7 @@ class SingleDownloadThreadTask extends HttpDownloadRequest implements IDownloadR
     public void run(){
         listenerDisposer.onStart(this);
         super.run();
+        XDownload.get().removeDownload(request.getTag());
     }
 
     @Override
@@ -68,14 +79,24 @@ class SingleDownloadThreadTask extends HttpDownloadRequest implements IDownloadR
         if(checkComplete()){
             return;
         }
-        sResonseCode=0;
         HttpURLConnection http=request.buildConnect();
         //预备中
-        listenerDisposer.onPrepare(this);
+        listenerDisposer.onConnecting(this);
+//        if(contentLength<=0){
+        try{
+            contentLength=http.getContentLengthLong();
+        } catch(Exception e){
+            XDownUtils.error(e);
+            contentLength=http.getContentLength();
+        }
+//        }
 
-        sResonseCode=http.getResponseCode();
+//        Headers headers=getHeaders(http);
+//        String contentType=headers.getValue("Content-Type");
 
-        if(sResonseCode >= 200&&sResonseCode<400){
+        int responseCode=http.getResponseCode();
+
+        if(responseCode >= 200&&responseCode<400){
             final boolean isBreakPointResume;
 
             if(cacheFile.exists()){
@@ -84,9 +105,9 @@ class SingleDownloadThreadTask extends HttpDownloadRequest implements IDownloadR
                     //复制临时文件到保存文件中
                     copyFile(cacheFile,XDownUtils.getSaveFile(request),true);
                     //下载完成
-                    listenerDisposer.onProgress(1);
+                    listenerDisposer.onProgress(this,1,speedLength);
+                    speedLength=0;
                     listenerDisposer.onComplete(this);
-                    listenerDisposer.onDownloadComplete();
                     return;
                 } else if(cacheFile.length()>contentLength){
                     cacheFile.delete();
@@ -110,8 +131,8 @@ class SingleDownloadThreadTask extends HttpDownloadRequest implements IDownloadR
                 urlConnection.setRequestProperty("Range","bytes="+start+"-"+contentLength);
                 urlConnection.connect();
 
-                sResonseCode=urlConnection.getResponseCode();
-                if(sResonseCode >= 200&&sResonseCode<400){
+                responseCode=urlConnection.getResponseCode();
+                if(responseCode >= 200&&responseCode<400){
                     FileOutputStream os=new FileOutputStream(cacheFile,true);
                     readInputStream(urlConnection.getInputStream(),os);
                     XDownUtils.disconnectHttp(urlConnection);
@@ -129,83 +150,46 @@ class SingleDownloadThreadTask extends HttpDownloadRequest implements IDownloadR
             }
             copyFile(cacheFile,XDownUtils.getSaveFile(request),true);
 
-            listenerDisposer.onProgress(1);
+            listenerDisposer.onProgress(this,1,speedLength);
+            speedLength=0;
             listenerDisposer.onComplete(this);
-            listenerDisposer.onDownloadComplete();
         } else{
             String stream=readStringStream(http.getErrorStream());
+            XDownUtils.warn(responseCode+":"+stream);
             XDownUtils.disconnectHttp(http);
             throw new ConnectException(stream);
         }
     }
 
     @Override
-    protected void onRetry(Exception e){
-        listenerDisposer.onRetry(this,e);
+    protected void onRetry(){
+        listenerDisposer.onRetry(this);
     }
 
     @Override
     protected void onError(Exception e){
-        listenerDisposer.onError(this,e);
+        listenerDisposer.onFailure(this);
     }
 
+    @Override
+    protected void onCancel(){
+        listenerDisposer.onCancel(this);
+    }
 
     @Override
     protected void onProgress(int length){
         sSofarLength+=length;
+        speedLength+=length;
         if(progressDisposer.isCallProgress()){
-            progressDisposer.onProgress(getTotalLength(),getSofarLength());
+            progressDisposer.onProgress(this,getTotalLength(),getSofarLength(),speedLength);
+            speedLength=0;
         }
     }
 
-    @Override
-    public boolean start(){
-        return false;
-    }
 
     @Override
-    public boolean ready(){
-        return false;
-    }
-
-    @Override
-    public boolean pause(){
-        return false;
-    }
-
-    @Override
-    public boolean cancel(){
-        return false;
-    }
-
-    @Override
-    public boolean isContinue(){
-        return false;
-    }
-
-    @Override
-    public boolean isMultiThread(){
-        return false;
-    }
-
-    @Override
-    public int getStatus(){
-        return 0;
-    }
-
-    @Override
-    public String getTag(){
-        return request.getIdentifier();
-    }
-
-    @Override
-    public String getUrl(){
-        return request.getConnectUrl();
-    }
-
-    @Override
-    public File getFilePath(){
-        return XDownUtils.getSaveFile(request);
+    public String getFilePath(){
+        return XDownUtils.getSaveFile(request).getAbsolutePath();
     }
 
     @Override
@@ -219,12 +203,31 @@ class SingleDownloadThreadTask extends HttpDownloadRequest implements IDownloadR
     }
 
     @Override
-    public int responseCode(){
-        return sResonseCode;
+    public String tag(){
+        return request.getIdentifier();
+    }
+
+    @Override
+    public String url(){
+        return request.getConnectUrl();
+    }
+
+    @Override
+    public boolean cancel(){
+        isCancel=true;
+        if(taskFuture!=null){
+            return taskFuture.cancel(true);
+        }
+        return false;
     }
 
     @Override
     public int retryCount(){
         return autoRetryRecorder.getRetryCount();
+    }
+
+    @Override
+    public XDownloadRequest request(){
+        return request;
     }
 }

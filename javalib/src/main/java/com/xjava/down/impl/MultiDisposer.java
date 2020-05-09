@@ -1,9 +1,10 @@
 package com.xjava.down.impl;
 
+import com.xjava.down.XDownload;
 import com.xjava.down.base.IDownloadRequest;
 import com.xjava.down.base.MultiDownloadTask;
 import com.xjava.down.core.XDownloadRequest;
-import com.xjava.down.listener.OnDownloadListener;
+import com.xjava.down.listener.OnDownloadConnectListener;
 import com.xjava.down.tool.XDownUtils;
 
 import java.io.File;
@@ -11,21 +12,24 @@ import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.util.HashMap;
 
-public class MultiDisposer implements OnDownloadListener{
+public class MultiDisposer implements OnDownloadConnectListener{
 
-    private final int threadCount;
+    private final XDownloadRequest request;
+    private final int blockCount;
     private final DownloadListenerDisposer listenerDisposer;
     private final ProgressDisposer progressDisposer;
     private volatile int successIndex=0;//成功位置
     private volatile int bolckIndex=0;//指针位置
+    private volatile int speedLength=0;
     private final HashMap<Integer,MultiDownloadTask> taskMaps=new HashMap<>();
 
-    public MultiDisposer(XDownloadRequest request,int threadCount,OnDownloadListener listener){
-        this.threadCount=threadCount;
-        this.listenerDisposer=new DownloadListenerDisposer(listener);
+    public MultiDisposer(XDownloadRequest request,int blockCount,DownloadListenerDisposer disposer){
+        this.request=request;
+        this.blockCount=blockCount;
+        this.listenerDisposer=disposer;
         this.progressDisposer=new ProgressDisposer(request.isIgnoredProgress(),
                                                    request.getUpdateProgressTimes(),
-                                                   listener);
+                                                   disposer);
     }
 
     @Override
@@ -43,17 +47,15 @@ public class MultiDisposer implements OnDownloadListener{
     }
 
     @Override
-    public void onPrepare(IDownloadRequest task){
-        listenerDisposer.onPrepare(task);
+    public void onConnecting(IDownloadRequest request){
+        listenerDisposer.onConnecting(request);
     }
 
-    @Override
-    public void onProgress(float progress){
-    }
-
-    public void onProgress(long contentLength,int length){
+    public void onProgress(IDownloadRequest request,long contentLength,int length){
+        speedLength+=length;
         if(progressDisposer.isCallProgress()){
-            progressDisposer.onProgress(contentLength,getSofarLength());
+            progressDisposer.onProgress(request,contentLength,getSofarLength(),speedLength);
+            speedLength=0;
         }
     }
 
@@ -68,42 +70,39 @@ public class MultiDisposer implements OnDownloadListener{
     }
 
     @Override
-    public void onPause(IDownloadRequest task){
-        listenerDisposer.onPause(task);
+    public void onCancel(IDownloadRequest task){
+        listenerDisposer.onCancel(task);
     }
 
     @Override
-    public void onError(IDownloadRequest task,Exception exception){
+    public void onRetry(IDownloadRequest request){
+        listenerDisposer.onRetry(request);
+    }
+
+    public void onFailure(IDownloadRequest task){
         bolckIndex++;
-        listenerDisposer.onError(task,exception);
-        if(bolckIndex==threadCount){
-            onDownloadFailure();
+        listenerDisposer.onFailure(task);
+        if(bolckIndex >= blockCount){
+            listenerDisposer.onFailure(task);
+            XDownload.get().removeDownload(request.getTag());
         }
     }
 
-    @Override
-    public void onRetry(IDownloadRequest task,Exception exception){
-        listenerDisposer.onRetry(task,exception);
-    }
-
-    @Override
     public void onComplete(IDownloadRequest task){
         bolckIndex++;
         successIndex++;
 
-        //下载块完成监听
-        listenerDisposer.onComplete(task);
-
-        if(bolckIndex==threadCount){
-            if(successIndex==threadCount){
-                listenerDisposer.onProgress(1);
-                File file=task.getFilePath();
+        if(bolckIndex==blockCount){
+            if(successIndex==blockCount){
+                listenerDisposer.onProgress(task,1,speedLength);
+                speedLength=0;
+                File file=new File(task.getFilePath());
                 byte[] bytes=new byte[1024*8];
                 FileOutputStream outputStream=null;
                 try{
                     File cacheDir=null;
                     outputStream=new FileOutputStream(file);
-                    for(int i=0;i<threadCount;i++){
+                    for(int i=0;i<blockCount;i++){
                         FileInputStream inputStream=null;
                         try{
                             File tempFile=taskMaps.get(i).blockFile();
@@ -122,14 +121,16 @@ public class MultiDisposer implements OnDownloadListener{
                     }
                     delectDir(cacheDir);
 
-                    onDownloadComplete();
+                    listenerDisposer.onComplete(task);
+                    XDownload.get().removeDownload(request.getTag());
                 } catch(Exception e){
-                    onDownloadFailure();
+                    XDownUtils.error(e);
+                    onFailure(task);
                 } finally{
                     XDownUtils.closeIo(outputStream);
                 }
             } else{
-                onDownloadFailure();
+                onFailure(task);
             }
         }
     }
@@ -150,13 +151,4 @@ public class MultiDisposer implements OnDownloadListener{
         dir.delete();
     }
 
-    @Override
-    public void onDownloadComplete(){
-        listenerDisposer.onDownloadComplete();
-    }
-
-    @Override
-    public void onDownloadFailure(){
-        listenerDisposer.onDownloadFailure();
-    }
 }

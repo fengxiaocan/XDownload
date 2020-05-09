@@ -1,11 +1,13 @@
 package com.xjava.down.data;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Set;
 
 public class Headers{
-    private HashMap<String,String> headerMap;
+    private HashMap<String,List<String>> headerMap;
 
     public Headers(){
         headerMap=new HashMap<>();
@@ -21,7 +23,17 @@ public class Headers{
     }
 
     public Headers addHeader(String name,String value){
-        headerMap.put(name,value);
+        if(headerMap.containsKey(name)){
+            headerMap.get(name).add(value);
+        } else{
+            List<String> list=new ArrayList<>();
+            headerMap.put(name,list);
+        }
+        return this;
+    }
+
+    public Headers addHeaders(String name,List<String> values){
+        headerMap.put(name,values);
         return this;
     }
 
@@ -31,15 +43,35 @@ public class Headers{
     }
 
     public String getValue(String name){
-        return headerMap.get(name);
+        List<String> list=headerMap.get(name);
+        if(list!=null&&!list.isEmpty()){
+            if(list.size()==1){
+                return list.get(0);
+            } else{
+                StringBuilder builder=new StringBuilder();
+                for(int i=0;i<list.size();i++){
+                    String s=list.get(i);
+                    builder.append(s);
+                    if(i<list.size()-1){
+                        builder.append(",");
+                    }
+                }
+                return builder.toString();
+            }
+        }
+        return "";
     }
 
     public Set<String> keySet(){
         return headerMap.keySet();
     }
 
-    public Collection<String> values(){
+    public Collection<List<String>> values(){
         return headerMap.values();
+    }
+
+    public List<String> values(String name){
+        return headerMap.get(name);
     }
 
     public int size(){
@@ -48,10 +80,6 @@ public class Headers{
 
     public boolean containsKey(String name){
         return headerMap.containsKey(name);
-    }
-
-    public boolean containsValue(String value){
-        return headerMap.containsValue(value);
     }
 
     @Override

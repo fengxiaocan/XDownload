@@ -1,19 +1,19 @@
 package com.xjava.down.impl;
 
-import com.xjava.down.listener.OnDownloadListener;
+import com.xjava.down.base.IDownloadRequest;
 
 public final class ProgressDisposer{
     private volatile long lastTime;
     private final boolean ignoredProgress;
     private final long updateProgressTimes;
-    private final OnDownloadListener listener;
+    private final DownloadListenerDisposer disposer;
 
     public ProgressDisposer(
-            boolean ignoredProgress,long updateProgressTimes,OnDownloadListener listener)
+            boolean ignoredProgress,long updateProgressTimes,DownloadListenerDisposer listener)
     {
         this.ignoredProgress=ignoredProgress;
         this.updateProgressTimes=updateProgressTimes;
-        this.listener=listener;
+        this.disposer=listener;
     }
 
     public boolean isCallProgress(){
@@ -26,10 +26,10 @@ public final class ProgressDisposer{
         }
     }
 
-    public void onProgress(final long totalLength,final long sofarLength){
+    public void onProgress(IDownloadRequest request,final long totalLength,final long sofarLength,int length){
         if(totalLength>0){
             lastTime=System.currentTimeMillis();
-            listener.onProgress(sofarLength*1F/totalLength);
+            disposer.onProgress(request,sofarLength*1F/totalLength,length);
         }
     }
 }

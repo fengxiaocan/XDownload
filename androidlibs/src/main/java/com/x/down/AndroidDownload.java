@@ -4,11 +4,9 @@ import android.content.Context;
 import android.os.Build;
 
 import com.xjava.down.XDownload;
-import com.xjava.down.base.HttpConnect;
-import com.xjava.down.base.HttpDownload;
 import com.xjava.down.config.XConfig;
-import com.xjava.down.core.XDownloadRequest;
-import com.xjava.down.core.XHttpRequest;
+import com.xjava.down.core.HttpConnect;
+import com.xjava.down.core.HttpDownload;
 
 public final class AndroidDownload{
 
@@ -20,12 +18,20 @@ public final class AndroidDownload{
         return config;
     }
 
+    public static void openLog(boolean openLog){
+        if(openLog){
+            XDownload.get().setLogReport(new AndroidLogReprot());
+        } else{
+            XDownload.get().setLogReport(null);
+        }
+    }
+
     public static HttpConnect request(String baseUrl){
-        return XHttpRequest.with(baseUrl);
+        return XDownload.request(baseUrl);
     }
 
     public static HttpDownload download(String baseUrl){
-        return XDownloadRequest.with(baseUrl);
+        return XDownload.download(baseUrl);
     }
 
     public static String getDefaultUserAgent(){
