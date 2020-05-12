@@ -1,7 +1,6 @@
 package com.xjava.down.task;
 
 
-import com.xjava.down.XDownload;
 import com.xjava.down.base.IConnectRequest;
 import com.xjava.down.base.MultiDownloadTask;
 import com.xjava.down.core.XDownloadRequest;
@@ -98,11 +97,12 @@ final class MultiDownloadThreadTask extends HttpDownloadRequest implements Multi
             readInputStream(http.getInputStream(),os);
 
             multiDisposer.onComplete(this);
-            http.disconnect();
+            XDownUtils.disconnectHttp(http);
         } else{
             String stream=readStringStream(http.getErrorStream());
-            XDownUtils.warn(responseCode+":"+stream);
-            http.disconnect();
+            multiDisposer.onRequestError(this,responseCode,stream);
+
+            XDownUtils.disconnectHttp(http);
             retryToRun();
         }
     }

@@ -124,7 +124,6 @@ public class RequestListenerDisposer implements OnConnectListener, OnResponseLis
 
     @Override
     public void onError(final IRequest request,final Exception exception){
-        XDownUtils.error(exception);
         if(onResponseListener==null){
             return;
         }

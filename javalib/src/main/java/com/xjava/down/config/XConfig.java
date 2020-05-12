@@ -12,12 +12,14 @@ public final class XConfig{
     private boolean isUseMultiThread;//是否使用多线程下载
     private boolean isUseBreakpointResume;//是否使用断点续传
     private boolean ignoredProgress;//是否忽略下载的progress回调
+    private boolean ignoredSpeed;//是否忽略下载的速度回调
 
     private boolean isUseAutoRetry;//是否使用出错自动重试
     private int autoRetryTimes;//自动重试次数
     private int autoRetryInterval;//自动重试间隔
 
     private int updateProgressTimes;//更新进度条的间隔
+    private int updateSpeedTimes;//更新进度条的间隔
     private boolean isWifiRequired;//是否仅在WiFi情况下下载
     private @DefaultName
     int defaultName;//默认的名称
@@ -33,10 +35,12 @@ public final class XConfig{
         isUseMultiThread=builder.isUseMultiThread;
         isUseBreakpointResume=builder.isUseBreakpointResume;
         ignoredProgress=builder.ignoredProgress;
+        ignoredSpeed=builder.ignoredSpeed;
         isUseAutoRetry=builder.isUseAutoRetry;
         autoRetryTimes=builder.autoRetryTimes;
         autoRetryInterval=builder.autoRetryInterval;
         updateProgressTimes=builder.updateProgressTimes;
+        updateSpeedTimes=builder.updateSpeedTimes;
         defaultName=builder.defaultName;
         isWifiRequired=builder.isWifiRequired;
         connectTimeOut=builder.connectTimeOut;
@@ -98,6 +102,14 @@ public final class XConfig{
         return connectTimeOut;
     }
 
+    public boolean isIgnoredSpeed(){
+        return ignoredSpeed;
+    }
+
+    public int getUpdateSpeedTimes(){
+        return updateSpeedTimes;
+    }
+
     public @DefaultName
     int getDefaultName(){
         return defaultName;
@@ -129,10 +141,12 @@ public final class XConfig{
         private boolean isUseMultiThread=true;//是否使用多线程下载
         private boolean isUseBreakpointResume=true;//是否使用断点续传
         private boolean ignoredProgress=false;//是否忽略下载的progress回调
+        private boolean ignoredSpeed=false;//是否忽略下载的速度回调
         private boolean isUseAutoRetry=true;//是否使用出错自动重试
         private int autoRetryTimes=10;//自动重试次数
         private int autoRetryInterval=5;//自动重试间隔
         private int updateProgressTimes=1000;//更新进度条的间隔
+        private int updateSpeedTimes=1000;//更新速度的间隔
         private @DefaultName
         int defaultName=DefaultName.MD5;//默认起名名称
         private boolean isWifiRequired=false;//是否仅在WiFi情况下下载
@@ -182,6 +196,11 @@ public final class XConfig{
             return this;
         }
 
+        public Builder ignoredSpeed(boolean ignoredSpeed){
+            this.ignoredSpeed=ignoredSpeed;
+            return this;
+        }
+
         public Builder isUseAutoRetry(boolean isUseAutoRetry){
             this.isUseAutoRetry=isUseAutoRetry;
             return this;
@@ -199,6 +218,11 @@ public final class XConfig{
 
         public Builder updateProgressTimes(int updateProgressTimes){
             this.updateProgressTimes=updateProgressTimes;
+            return this;
+        }
+
+        public Builder updateSpeedTimes(int updateSpeedTimes){
+            this.updateSpeedTimes=updateSpeedTimes;
             return this;
         }
 

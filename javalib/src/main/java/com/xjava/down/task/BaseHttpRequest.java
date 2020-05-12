@@ -29,10 +29,8 @@ abstract class BaseHttpRequest implements Runnable{
             httpRequest();
         } catch(Exception e){
             if(isCancel){
-                XDownUtils.error(e);
                 onCancel();
             }else{
-                XDownUtils.error(e);
                 if(autoRetryRecorder.isCanRetry()){
                     //回调重试
                     onRetry();

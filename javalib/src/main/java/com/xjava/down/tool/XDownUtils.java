@@ -219,20 +219,4 @@ public class XDownUtils{
         }
     }
 
-    public static void error(Exception e){
-        if(XDownload.get().log()!=null){
-            XDownload.get().log().error(e);
-        }
-    }
-
-    public static void info(String info){
-        if(XDownload.get().log()!=null){
-            XDownload.get().log().info(info);
-        }
-    }
-    public static void warn(String info){
-        if(XDownload.get().log()!=null){
-            XDownload.get().log().warn(info);
-        }
-    }
 }

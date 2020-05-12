@@ -4,6 +4,8 @@ import android.app.IntentService;
 import android.content.Intent;
 import android.os.AsyncTask;
 
+import com.xjava.down.tool.XDownUtils;
+
 import java.io.BufferedInputStream;
 import java.io.File;
 import java.io.FileOutputStream;
@@ -57,7 +59,7 @@ import java.net.URL;
         } catch(Exception e){
             e.printStackTrace();
         } finally{
-            urlConnection.disconnect();
+            XDownUtils.disconnectHttp(urlConnection);
         }
     }
 }

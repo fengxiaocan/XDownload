@@ -18,6 +18,7 @@ public class MultiDisposer implements OnDownloadConnectListener{
     private final int blockCount;
     private final DownloadListenerDisposer listenerDisposer;
     private final ProgressDisposer progressDisposer;
+    private final SpeedDisposer speedDisposer;
     private volatile int successIndex=0;//成功位置
     private volatile int bolckIndex=0;//指针位置
     private volatile int speedLength=0;
@@ -30,6 +31,7 @@ public class MultiDisposer implements OnDownloadConnectListener{
         this.progressDisposer=new ProgressDisposer(request.isIgnoredProgress(),
                                                    request.getUpdateProgressTimes(),
                                                    disposer);
+        this.speedDisposer=new SpeedDisposer(request.isIgnoredSpeed(),request.getUpdateSpeedTimes(),disposer);
     }
 
     @Override
@@ -51,10 +53,20 @@ public class MultiDisposer implements OnDownloadConnectListener{
         listenerDisposer.onConnecting(request);
     }
 
+    @Override
+    public void onRequestError(IDownloadRequest request,int code,String error){
+        listenerDisposer.onRequestError(request,code,error);
+    }
+
     public void onProgress(IDownloadRequest request,long contentLength,int length){
         speedLength+=length;
+
         if(progressDisposer.isCallProgress()){
-            progressDisposer.onProgress(request,contentLength,getSofarLength(),speedLength);
+            progressDisposer.onProgress(request,contentLength,getSofarLength());
+        }
+
+        if(speedDisposer.isCallSpeed()){
+            speedDisposer.onSpeed(request,speedLength);
             speedLength=0;
         }
     }
@@ -94,7 +106,13 @@ public class MultiDisposer implements OnDownloadConnectListener{
 
         if(bolckIndex==blockCount){
             if(successIndex==blockCount){
-                listenerDisposer.onProgress(task,1,speedLength);
+                if(!progressDisposer.isIgnoredProgress()){
+                    listenerDisposer.onProgress(task,1);
+                }
+
+                if(!speedDisposer.isIgnoredSpeed()){
+                    speedDisposer.onSpeed(task,speedLength);
+                }
                 speedLength=0;
                 File file=new File(task.getFilePath());
                 byte[] bytes=new byte[1024*8];
@@ -124,7 +142,6 @@ public class MultiDisposer implements OnDownloadConnectListener{
                     listenerDisposer.onComplete(task);
                     XDownload.get().removeDownload(request.getTag());
                 } catch(Exception e){
-                    XDownUtils.error(e);
                     onFailure(task);
                 } finally{
                     XDownUtils.closeIo(outputStream);

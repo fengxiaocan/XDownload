@@ -10,6 +10,8 @@ import com.xjava.down.impl.DownloadListenerDisposer;
 import com.xjava.down.impl.MultiDisposer;
 import com.xjava.down.listener.OnDownloadConnectListener;
 import com.xjava.down.listener.OnDownloadListener;
+import com.xjava.down.listener.OnProgressListener;
+import com.xjava.down.listener.OnSpeedListener;
 import com.xjava.down.made.AutoRetryRecorder;
 import com.xjava.down.made.Block;
 import com.xjava.down.tool.XDownUtils;
@@ -29,7 +31,11 @@ final class DownloadThreadRequest extends BaseHttpRequest implements IDownloadRe
     protected volatile long contentLength;
 
     public DownloadThreadRequest(
-            XDownloadRequest request,OnDownloadConnectListener onConnectListeners,OnDownloadListener downloadListeners)
+            XDownloadRequest request,
+            OnDownloadConnectListener onConnectListeners,
+            OnDownloadListener downloadListeners,
+            OnProgressListener onProgressListener,
+            OnSpeedListener onSpeedListener)
     {
         super(new AutoRetryRecorder(request.isUseAutoRetry(),
                                     request.getAutoRetryTimes(),
@@ -37,7 +43,9 @@ final class DownloadThreadRequest extends BaseHttpRequest implements IDownloadRe
         this.httpRequest=request;
         this.listenerDisposer=new DownloadListenerDisposer(request.getSchedulers(),
                                                            onConnectListeners,
-                                                           downloadListeners);
+                                                           downloadListeners,
+                                                           onProgressListener,
+                                                           onSpeedListener);
     }
 
     public final void setTaskFuture(Future taskFuture){
@@ -48,43 +56,46 @@ final class DownloadThreadRequest extends BaseHttpRequest implements IDownloadRe
     protected void httpRequest() throws Exception{
         HttpURLConnection http=httpRequest.buildConnect();
 
-        http.getResponseCode();
+        int code= http.getResponseCode();
 
         long contentLength=0;
         try{
             contentLength=http.getContentLengthLong();
         } catch(Exception e){
-            XDownUtils.error(e);
             contentLength=http.getContentLength();
         }
-        int code=http.getResponseCode();
-
 //        Headers headers=getHeaders(http);
+        if(code <200||code>=400){
+            String stream=readStringStream(http.getErrorStream());
+            listenerDisposer.onRequestError(this,code,stream);
+            XDownUtils.disconnectHttp(http);
 
-        File file=XDownUtils.getSaveFile(httpRequest);
-        if(file.exists()){
-            if(file.length()==contentLength){
-                listenerDisposer.onProgress(this,1,0);
-                listenerDisposer.onComplete(this);
+            retryToRun();
+        }else {
 
-                http.disconnect();
-                return;
-            } else{
-                file.delete();
+            File file=XDownUtils.getSaveFile(httpRequest);
+            if(file.exists()){
+                if(file.length()==contentLength){
+                    listenerDisposer.onComplete(this);
+                    XDownUtils.disconnectHttp(http);
+                    return;
+                } else{
+                    file.delete();
+                }
             }
-        }
 
-        if(contentLength>0&&httpRequest.isUseMultiThread()){
-            multiThreadRun(contentLength);
-        } else{
-            //独立下载
-            SingleDownloadThreadTask threadTask=new SingleDownloadThreadTask(httpRequest,
-                                                                             listenerDisposer,
-                                                                             contentLength);
-            if(!threadTask.checkComplete()){
-                Future<?> future=ExecutorGather.executorQueue().submit(threadTask);
-                threadTask.setTaskFuture(future);
-                XDownload.get().addDownload(httpRequest.getTag(),threadTask);
+            if(contentLength>0&&httpRequest.isUseMultiThread()){
+                multiThreadRun(contentLength);
+            } else{
+                //独立下载
+                SingleDownloadThreadTask threadTask=new SingleDownloadThreadTask(httpRequest,
+                                                                                 listenerDisposer,
+                                                                                 contentLength);
+                if(!threadTask.checkComplete()){
+                    Future<?> future=ExecutorGather.executorQueue().submit(threadTask);
+                    threadTask.setTaskFuture(future);
+                    XDownload.get().addDownload(httpRequest.getTag(),threadTask);
+                }
             }
         }
     }

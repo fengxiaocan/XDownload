@@ -18,14 +18,6 @@ public final class AndroidDownload{
         return config;
     }
 
-    public static void openLog(boolean openLog){
-        if(openLog){
-            XDownload.get().setLogReport(new AndroidLogReprot());
-        } else{
-            XDownload.get().setLogReport(null);
-        }
-    }
-
     public static HttpConnect request(String baseUrl){
         return XDownload.request(baseUrl);
     }

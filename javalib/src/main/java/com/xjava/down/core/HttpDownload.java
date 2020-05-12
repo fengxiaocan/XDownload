@@ -3,6 +3,8 @@ package com.xjava.down.core;
 import com.xjava.down.dispatch.Schedulers;
 import com.xjava.down.listener.OnDownloadConnectListener;
 import com.xjava.down.listener.OnDownloadListener;
+import com.xjava.down.listener.OnProgressListener;
+import com.xjava.down.listener.OnSpeedListener;
 
 public interface HttpDownload extends IConnect{
 
@@ -13,6 +15,10 @@ public interface HttpDownload extends IConnect{
     HttpDownload setIgnoredProgress(boolean ignoredProgress);
 
     HttpDownload setUpdateProgressTimes(int updateProgressTimes);
+
+    HttpDownload setIgnoredSpeed(boolean ignoredSpeed);
+
+    HttpDownload setUpdateSpeedTimes(int updateSpeedTimes);
 
     HttpDownload setUseMultiThread(boolean useMultiThread);
 
@@ -27,6 +33,10 @@ public interface HttpDownload extends IConnect{
     HttpDownload setDownloadListener(OnDownloadListener listener);
 
     HttpDownload setConnectListener(OnDownloadConnectListener listener);
+
+    HttpDownload setOnProgressListener(OnProgressListener listener);
+
+    HttpDownload setOnSpeedListener(OnSpeedListener listener);
 
     @Override
     HttpDownload setTag(String tag);

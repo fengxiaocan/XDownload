@@ -1,14 +1,11 @@
 package com.xjava.down;
 
 import com.xjava.down.base.IConnectRequest;
-import com.xjava.down.base.IDownloadRequest;
-import com.xjava.down.base.IRequest;
 import com.xjava.down.config.XConfig;
 import com.xjava.down.core.HttpConnect;
 import com.xjava.down.core.HttpDownload;
 import com.xjava.down.core.XDownloadRequest;
 import com.xjava.down.core.XHttpRequest;
-import com.xjava.down.dispatch.LogReport;
 
 import java.io.File;
 import java.util.ArrayList;
@@ -20,7 +17,6 @@ public final class XDownload{
 
     private static XDownload xDownload;
     private XConfig setting;
-    private LogReport logReport;
     private Map<String,IConnectRequest> connectMap=new HashMap<>();
     private Map<String,List<IConnectRequest>> downloadMap=new HashMap<>();
     private int maxThreadCount=30;//最大允许的多线程
@@ -40,13 +36,6 @@ public final class XDownload{
         return maxThreadCount;
     }
 
-    public void setLogReport(LogReport logReport){
-        this.logReport=logReport;
-    }
-
-    public LogReport log(){
-        return logReport;
-    }
 
     public void setMaxThreadCount(int count){
         this.maxThreadCount=count;
@@ -88,8 +77,10 @@ public final class XDownload{
     public List<IConnectRequest> removeDownload(String tag){
         return downloadMap.remove(tag);
     }
+
     /**
      * 取消请求
+     *
      * @param tag
      * @return
      */
@@ -103,6 +94,7 @@ public final class XDownload{
 
     /**
      * 取消下载
+     *
      * @param tag
      * @return
      */

@@ -14,6 +14,7 @@ import com.xjava.down.impl.RequestListenerDisposer;
 import com.xjava.down.listener.OnConnectListener;
 import com.xjava.down.listener.OnResponseListener;
 import com.xjava.down.made.AutoRetryRecorder;
+import com.xjava.down.tool.XDownUtils;
 
 import java.net.HttpURLConnection;
 import java.util.concurrent.Future;
@@ -74,11 +75,11 @@ class HttpRequestTask extends BaseHttpRequest implements IRequest, IConnectReque
 
         if(isSuccess(code)){
             String stream=readStringStream(http.getInputStream());
-            http.disconnect();
+            XDownUtils.disconnectHttp(http);
             listenerDisposer.onResponse(this,Response.builderSuccess(stream,code,headers));
         } else{
             String error=readStringStream(http.getErrorStream());
-            http.disconnect();
+            XDownUtils.disconnectHttp(http);
             listenerDisposer.onResponse(this,Response.builderFailure(code,headers,error));
             retryToRun();
         }

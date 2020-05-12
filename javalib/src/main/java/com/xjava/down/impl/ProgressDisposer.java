@@ -16,6 +16,10 @@ public final class ProgressDisposer{
         this.disposer=listener;
     }
 
+    public boolean isIgnoredProgress(){
+        return ignoredProgress;
+    }
+
     public boolean isCallProgress(){
         if(ignoredProgress||updateProgressTimes<=0){
             return false;
@@ -26,10 +30,10 @@ public final class ProgressDisposer{
         }
     }
 
-    public void onProgress(IDownloadRequest request,final long totalLength,final long sofarLength,int length){
+    public void onProgress(IDownloadRequest request,final long totalLength,final long sofarLength){
         if(totalLength>0){
             lastTime=System.currentTimeMillis();
-            disposer.onProgress(request,sofarLength*1F/totalLength,length);
+            disposer.onProgress(request,sofarLength*1F/totalLength);
         }
     }
 }

@@ -11,6 +11,8 @@ import com.x.down.AndroidDownload;
 import com.xjava.down.base.IDownloadRequest;
 import com.xjava.down.listener.OnDownloadConnectListener;
 import com.xjava.down.listener.OnDownloadListener;
+import com.xjava.down.listener.OnProgressListener;
+import com.xjava.down.listener.OnSpeedListener;
 
 public class MainActivity extends AppCompatActivity{
     @Override
@@ -19,7 +21,6 @@ public class MainActivity extends AppCompatActivity{
         setContentView(R.layout.activity_main);
 
         AndroidDownload.init(this);
-        AndroidDownload.openLog(true);
 
 //        AndroidDownload.request("https://kan.jinbaozy.com/vodplayhtml/153-1-25.html")
 //                       .setOnResponseListener(new OnResponseListener(){
@@ -38,19 +39,23 @@ public class MainActivity extends AppCompatActivity{
 //                           }
 //                       })
 //                       .start();
-        AndroidDownload.download("https://download-cf.jetbrains.com/idea/ideaIC-2020.1.1.dmg")
-//                       .setUseMultiThread(false)
-                       .setDownloadListener(new OnDownloadListener(){
+        AndroidDownload.download("http://down.dgtle.com/app/dgtle_4_3.apk")
+                       .setUseMultiThread(false)
+                       .setAutoRetryInterval(5000)
+                       .setUpdateSpeedTimes(1000)
+                       .setOnProgressListener(new OnProgressListener(){
                            @Override
-                           public void onProgress(IDownloadRequest request,float progress,int speed){
-//                               if(progress>0.2f){
-//                                   XDownload.get().cancleDownload(request.tag());
-//                               }
-                               Log.e("noah",
-                                     "progress="+(progress*100)+" speed="+
-                                     (Formatter.formatShortFileSize(MainActivity.this,speed)));
+                           public void onProgress(IDownloadRequest request,float progress){
+                               Log.e("noah","progress="+(progress*100));
                            }
-
+                       })
+                       .setOnSpeedListener(new OnSpeedListener(){
+                           @Override
+                           public void onSpeed(IDownloadRequest request,int speed,int time){
+                               Log.e("noah","onSpeed="+Formatter.formatFileSize(getBaseContext(),speed)+" time="+time);
+                           }
+                       })
+                       .setDownloadListener(new OnDownloadListener(){
                            @Override
                            public void onComplete(IDownloadRequest request){
                                Log.e("noah","下载完成");
@@ -60,32 +65,39 @@ public class MainActivity extends AppCompatActivity{
                            public void onFailure(IDownloadRequest request){
                                Log.e("noah","下载失败");
                            }
-                       }).setConnectListener(new OnDownloadConnectListener(){
-            @Override
-            public void onPending(IDownloadRequest request){
-                Log.e("noah","onPending");
-            }
+                       })
+                       .setConnectListener(new OnDownloadConnectListener(){
+                           @Override
+                           public void onPending(IDownloadRequest request){
+                               Log.e("noah","onPending");
+                           }
 
-            @Override
-            public void onStart(IDownloadRequest request){
-                Log.e("noah","onStart");
-            }
+                           @Override
+                           public void onStart(IDownloadRequest request){
+                               Log.e("noah","onStart");
+                           }
 
-            @Override
-            public void onConnecting(IDownloadRequest request){
-                Log.e("noah","onConnecting");
-            }
+                           @Override
+                           public void onConnecting(IDownloadRequest request){
+                               Log.e("noah","onConnecting");
+                           }
 
-            @Override
-            public void onCancel(IDownloadRequest request){
-                Log.e("noah","onCancel");
-            }
+                           @Override
+                           public void onRequestError(IDownloadRequest request,int code,String error){
+                               Log.e("noah","onRequestError code="+code+" error="+error);
+                           }
 
-            @Override
-            public void onRetry(IDownloadRequest request){
-                Log.e("noah","onRetry");
-            }
-        }).start();
+                           @Override
+                           public void onCancel(IDownloadRequest request){
+                               Log.e("noah","onCancel");
+                           }
+
+                           @Override
+                           public void onRetry(IDownloadRequest request){
+                               Log.e("noah","onRetry");
+                           }
+                       })
+                       .start();
     }
 
 }

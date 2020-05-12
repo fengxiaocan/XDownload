@@ -9,6 +9,8 @@ public interface OnDownloadConnectListener{
 
     void onConnecting(IDownloadRequest request);
 
+    void onRequestError(IDownloadRequest request,int code,String error);
+
     void onCancel(IDownloadRequest request);
 
     void onRetry(IDownloadRequest request);

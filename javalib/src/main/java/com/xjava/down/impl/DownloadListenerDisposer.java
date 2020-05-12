@@ -4,18 +4,29 @@ import com.xjava.down.base.IDownloadRequest;
 import com.xjava.down.dispatch.Schedulers;
 import com.xjava.down.listener.OnDownloadConnectListener;
 import com.xjava.down.listener.OnDownloadListener;
+import com.xjava.down.listener.OnProgressListener;
+import com.xjava.down.listener.OnSpeedListener;
 
-public class DownloadListenerDisposer implements OnDownloadConnectListener, OnDownloadListener{
+public class DownloadListenerDisposer
+        implements OnDownloadConnectListener, OnDownloadListener, OnProgressListener, OnSpeedListener{
     private Schedulers schedulers;
     private OnDownloadListener onDownloadListener;
+    private OnProgressListener onProgressListener;
+    private OnSpeedListener onSpeedListener;
     private OnDownloadConnectListener onConnectListener;
 
     public DownloadListenerDisposer(
-            Schedulers schedulers,OnDownloadConnectListener onConnectListener,OnDownloadListener onDownloadListener)
+            Schedulers schedulers,
+            OnDownloadConnectListener onConnectListener,
+            OnDownloadListener onDownloadListener,
+            OnProgressListener onProgressListener,
+            OnSpeedListener onSpeedListener)
     {
         this.schedulers=schedulers;
         this.onConnectListener=onConnectListener;
         this.onDownloadListener=onDownloadListener;
+        this.onProgressListener=onProgressListener;
+        this.onSpeedListener=onSpeedListener;
     }
 
     @Override
@@ -70,6 +81,23 @@ public class DownloadListenerDisposer implements OnDownloadConnectListener, OnDo
     }
 
     @Override
+    public void onRequestError(final IDownloadRequest request,final int code,final String error){
+        if(onConnectListener==null){
+            return;
+        }
+        if(schedulers!=null){
+            schedulers.schedule(new Runnable(){
+                @Override
+                public void run(){
+                    onConnectListener.onRequestError(request,code,error);
+                }
+            });
+        } else{
+            onConnectListener.onRequestError(request,code,error);
+        }
+    }
+
+    @Override
     public void onCancel(final IDownloadRequest request){
         if(onConnectListener==null){
             return;
@@ -104,25 +132,8 @@ public class DownloadListenerDisposer implements OnDownloadConnectListener, OnDo
     }
 
     @Override
-    public void onProgress(final IDownloadRequest request,final float progress,final int speed){
-        if(onDownloadListener==null){
-            return;
-        }
-        if(schedulers!=null){
-            schedulers.schedule(new Runnable(){
-                @Override
-                public void run(){
-                    onDownloadListener.onProgress(request,progress,speed);
-                }
-            });
-        } else{
-            onDownloadListener.onProgress(request,progress,speed);
-        }
-    }
-
-    @Override
     public void onComplete(final IDownloadRequest request){
-        if(onDownloadListener==null){
+        if(onProgressListener==null){
             return;
         }
         if(schedulers!=null){
@@ -151,6 +162,40 @@ public class DownloadListenerDisposer implements OnDownloadConnectListener, OnDo
             });
         } else{
             onDownloadListener.onFailure(request);
+        }
+    }
+
+    @Override
+    public void onProgress(final IDownloadRequest request,final float progress){
+        if(onProgressListener==null){
+            return;
+        }
+        if(schedulers!=null){
+            schedulers.schedule(new Runnable(){
+                @Override
+                public void run(){
+                    onProgressListener.onProgress(request,progress);
+                }
+            });
+        } else{
+            onProgressListener.onProgress(request,progress);
+        }
+    }
+
+    @Override
+    public void onSpeed(final IDownloadRequest request,final int speed,final int time){
+        if(onSpeedListener==null){
+            return;
+        }
+        if(schedulers!=null){
+            schedulers.schedule(new Runnable(){
+                @Override
+                public void run(){
+                    onSpeedListener.onSpeed(request,speed,time);
+                }
+            });
+        } else{
+            onSpeedListener.onSpeed(request,speed,time);
         }
     }
 }

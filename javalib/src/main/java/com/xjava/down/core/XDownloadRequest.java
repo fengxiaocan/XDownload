@@ -4,6 +4,8 @@ import com.xjava.down.XDownload;
 import com.xjava.down.dispatch.Schedulers;
 import com.xjava.down.listener.OnDownloadConnectListener;
 import com.xjava.down.listener.OnDownloadListener;
+import com.xjava.down.listener.OnProgressListener;
+import com.xjava.down.listener.OnSpeedListener;
 import com.xjava.down.task.ThreadTaskFactory;
 import com.xjava.down.tool.XDownUtils;
 
@@ -25,10 +27,16 @@ public final class XDownloadRequest extends BaseRequest implements HttpDownload{
     protected boolean isUseBreakpointResume=XDownload.get().config().isUseBreakpointResume();
     //是否忽略下载的progress回调
     protected boolean ignoredProgress=XDownload.get().config().isIgnoredProgress();
+    //是否忽略下载的progress回调
+    protected boolean ignoredSpeed=XDownload.get().config().isIgnoredSpeed();
     //更新进度条的间隔
     protected int updateProgressTimes=XDownload.get().config().getUpdateProgressTimes();
+    //更新下载速度的间隔
+    protected int updateSpeedTimes=XDownload.get().config().getUpdateSpeedTimes();
     protected OnDownloadListener onDownloadListener;
     protected OnDownloadConnectListener onDownloadConnectListener;
+    protected OnProgressListener onProgressListener;
+    protected OnSpeedListener onSpeedListener;
 
     public static XDownloadRequest with(String url){
         return new XDownloadRequest(url);
@@ -61,9 +69,22 @@ public final class XDownloadRequest extends BaseRequest implements HttpDownload{
         return this;
     }
 
+
+    @Override
+    public HttpDownload setIgnoredSpeed(boolean ignoredSpeed){
+        this.ignoredSpeed=ignoredSpeed;
+        return this;
+    }
+
     @Override
     public HttpDownload setUpdateProgressTimes(int updateProgressTimes){
         this.updateProgressTimes=updateProgressTimes;
+        return this;
+    }
+
+    @Override
+    public HttpDownload setUpdateSpeedTimes(int updateSpeedTimes){
+        this.updateSpeedTimes=updateSpeedTimes;
         return this;
     }
 
@@ -106,6 +127,18 @@ public final class XDownloadRequest extends BaseRequest implements HttpDownload{
     @Override
     public HttpDownload setConnectListener(OnDownloadConnectListener listener){
         onDownloadConnectListener=listener;
+        return this;
+    }
+
+    @Override
+    public HttpDownload setOnProgressListener(OnProgressListener listener){
+        onProgressListener = listener;
+        return this;
+    }
+
+    @Override
+    public HttpDownload setOnSpeedListener(OnSpeedListener listener){
+        onSpeedListener = listener;
         return this;
     }
 
@@ -188,9 +221,16 @@ public final class XDownloadRequest extends BaseRequest implements HttpDownload{
     public boolean isIgnoredProgress(){
         return ignoredProgress;
     }
+    public boolean isIgnoredSpeed(){
+        return ignoredSpeed;
+    }
 
     public int getUpdateProgressTimes(){
         return updateProgressTimes;
+    }
+
+    public int getUpdateSpeedTimes(){
+        return updateSpeedTimes;
     }
 
     public OnDownloadListener getOnDownloadListener(){
@@ -199,6 +239,14 @@ public final class XDownloadRequest extends BaseRequest implements HttpDownload{
 
     public OnDownloadConnectListener getOnDownloadConnectListener(){
         return onDownloadConnectListener;
+    }
+
+    public OnProgressListener getOnProgressListener(){
+        return onProgressListener;
+    }
+
+    public OnSpeedListener getOnSpeedListener(){
+        return onSpeedListener;
     }
 
     @Override
