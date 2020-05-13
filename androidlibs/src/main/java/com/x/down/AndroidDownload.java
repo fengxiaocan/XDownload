@@ -76,8 +76,8 @@ public final class AndroidDownload{
         return XDownload.get().cancleDownload(tag);
     }
 
-    public XDownload setMaxThreadCount(int count){
-        return XDownload.get().setMaxThreadCount(count);
+    public void setMaxThreadCount(int count){
+         XDownload.get().setMaxThreadCount(count);
     }
 
 }
