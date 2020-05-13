@@ -22,7 +22,7 @@ abstract class BaseRequest implements IConnect{
     protected int connectTimeOut=XDownload.get().config().getConnectTimeOut();//连接超时
 
     protected volatile String connectUrl;//下载地址
-    protected volatile String identifier;
+    protected volatile String identifier;//下载标志
 
     protected BaseRequest(String baseUrl){
         this.baseUrl=baseUrl;

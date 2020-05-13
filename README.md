@@ -68,31 +68,31 @@ Java中使用方法:
         //取消下载=暂停下载,恢复下载再走一遍请求逻辑
         XDownload.get().cancleDownload(tag);
 	
-	//OnSpeedListener:下载速度监听器
-	//request:下载任务请求 speed:下载速度 time:距离上次回调的时间间隔
-	void onSpeed(IDownloadRequest request,int speed,int time)
+	    //OnSpeedListener:下载速度监听器
+	    //request:下载任务请求 speed:下载速度 time:距离上次回调的时间间隔
+	    void onSpeed(IDownloadRequest request,int speed,int time)
 
-	//OnProgressListener:下载进度监听器
-	void onProgress(IDownloadRequest request,float progress);
+	    //OnProgressListener:下载进度监听器
+	    void onProgress(IDownloadRequest request,float progress);
 	
-	//OnDownloadConnectListener:请求连接监听器
-	//预备下载
-	void onPending(IDownloadRequest request);
-	//开始下载
+	    //OnDownloadConnectListener:请求连接监听器
+	    //预备下载
+	    void onPending(IDownloadRequest request);
+	    //开始下载
     	void onStart(IDownloadRequest request);
-	//连接上请求
+	    //连接上请求
     	void onConnecting(IDownloadRequest request);
-	//请求失败,code为返回码,error为服务器返回错误信息
+	    //请求失败,code为返回码,error为服务器返回错误信息
     	void onRequestError(IDownloadRequest request,int code,String error);
-	//下载取消,多线程下载会有多次回调
+	    //下载取消,多线程下载会有多次回调
     	void onCancel(IDownloadRequest request);
-	//下载出错,正在重试
+	    //下载出错,正在重试
     	void onRetry(IDownloadRequest request);
 	
-	//OnDownloadListener:下载结果监听器
-	//下载完成
-	void onComplete(IDownloadRequest request);
-	//下载失败
+	    //OnDownloadListener:下载结果监听器
+	    //下载完成
+	    void onComplete(IDownloadRequest request);
+	    //下载失败
     	void onFailure(IDownloadRequest request);
 
 

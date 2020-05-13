@@ -18,6 +18,10 @@ public final class AndroidDownload{
         return config;
     }
 
+    public static void init(XConfig xConfig){
+        XDownload.get().config(xConfig);
+    }
+
     public static HttpConnect request(String baseUrl){
         return XDownload.request(baseUrl);
     }
@@ -51,4 +55,29 @@ public final class AndroidDownload{
 
         return result.toString();
     }
+
+    /**
+     * 取消请求
+     *
+     * @param tag
+     * @return
+     */
+    public static boolean cancleRequest(String tag){
+        return XDownload.get().cancleRequest(tag);
+    }
+
+    /**
+     * 取消下载
+     *
+     * @param tag
+     * @return
+     */
+    public boolean cancleDownload(String tag){
+        return XDownload.get().cancleDownload(tag);
+    }
+
+    public XDownload setMaxThreadCount(int count){
+        return XDownload.get().setMaxThreadCount(count);
+    }
+
 }

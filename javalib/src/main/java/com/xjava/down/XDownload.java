@@ -21,9 +21,7 @@ public final class XDownload{
     private Map<String,List<IConnectRequest>> downloadMap=new HashMap<>();
     private int maxThreadCount=30;//最大允许的多线程
 
-    private XDownload(){
-    }
-
+    private XDownload(){}
 
     public static synchronized XDownload get(){
         if(xDownload==null){
@@ -37,8 +35,9 @@ public final class XDownload{
     }
 
 
-    public void setMaxThreadCount(int count){
+    public XDownload setMaxThreadCount(int count){
         this.maxThreadCount=count;
+        return this;
     }
 
     public XDownload config(XConfig setting){
