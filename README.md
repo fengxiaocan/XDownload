@@ -25,7 +25,9 @@ JavaGUI各平台可视化操作界面[DownloaderGUI.jar](./DownloaderGUI.jar)
 Java中使用方法:
 	
 	//初始化配置
-	XDownload.get().config(XConfig
+	XDownload.get()
+		.setMaxThreadCount(30);//构建预下载请求任务队列的最大线程数,非下载数
+		.config(XConfig
                 .with(System.getProperty("user.dir"))
                 .defaultName(XConfig.DefaultName.MD5)//默认起名名称,除非自己声明保存文件名
                 // MD5:默认以下载URL MD5起名  TIME:默认以时间戳来命名  ORIGINAL:默认根据下载链接的名称来命名
@@ -45,8 +47,8 @@ Java中使用方法:
                 .isWifiRequired(false)//是否仅在WiFi情况下下载,暂不可用
                 .ignoredSpeed(false)//是否忽略下载的速度回调
                 .ignoredProgress(false)//是否忽略下载的progress回调
-                .build())
-		.setMaxThreadCount(30);//构建预下载请求任务队列的最大线程数,非下载数
+                .build());
+		
 	//发起请求
 	String tag = XDownload.download(url)
                .setTag(tag)//设置tag,不设置
@@ -66,18 +68,14 @@ Java中使用方法:
         //取消下载=暂停下载,恢复下载再走一遍请求逻辑
         XDownload.get().cancleDownload(tag);
 	
-	//下载速度监听器
-	OnSpeedListener:
+	//OnSpeedListener:下载速度监听器
 	//request:下载任务请求 speed:下载速度 time:距离上次回调的时间间隔
 	void onSpeed(IDownloadRequest request,int speed,int time)
 
-	//下载进度监听器
-	OnProgressListener:
-	
+	//OnProgressListener:下载进度监听器
 	void onProgress(IDownloadRequest request,float progress);
 	
-	//请求连接监听器
-	OnDownloadConnectListener
+	//OnDownloadConnectListener:请求连接监听器
 	//预备下载
 	void onPending(IDownloadRequest request);
 	//开始下载
@@ -91,8 +89,7 @@ Java中使用方法:
 	//下载出错,正在重试
     	void onRetry(IDownloadRequest request);
 	
-	//下载结果监听器
-	OnDownloadListener
+	//OnDownloadListener:下载结果监听器
 	//下载完成
 	void onComplete(IDownloadRequest request);
 	//下载失败
