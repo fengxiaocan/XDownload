@@ -65,19 +65,16 @@ Java中使用方法:
 	       
         //取消下载=暂停下载,恢复下载再走一遍请求逻辑
         XDownload.get().cancleDownload(tag);
+	
 	//下载速度监听器
 	OnSpeedListener:
-	//request:下载任务请求
-	//speed:下载速度
-	//time:距离上次回调的时间间隔
+	//request:下载任务请求 speed:下载速度 time:距离上次回调的时间间隔
 	void onSpeed(IDownloadRequest request,int speed,int time)
 
 	//下载进度监听器
 	OnProgressListener:
-	//request:下载任务请求
-	//speed:下载速度
-	//time:距离上次回调的时间间隔
-	void onSpeed(IDownloadRequest request,int speed,int time)
+	
+	void onProgress(IDownloadRequest request,float progress);
 	
 	//请求连接监听器
 	OnDownloadConnectListener
