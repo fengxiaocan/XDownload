@@ -8,6 +8,7 @@ import android.util.Log;
 import androidx.appcompat.app.AppCompatActivity;
 
 import com.x.down.AndroidDownload;
+import com.xjava.down.XDownload;
 import com.xjava.down.base.IDownloadRequest;
 import com.xjava.down.listener.OnDownloadConnectListener;
 import com.xjava.down.listener.OnDownloadListener;
@@ -40,12 +41,15 @@ public class MainActivity extends AppCompatActivity{
 //                       })
 //                       .start();
         AndroidDownload.download("http://down.dgtle.com/app/dgtle_4_3.apk")
-                       .setUseMultiThread(false)
+//                       .setUseMultiThread(false)
                        .setAutoRetryInterval(5000)
                        .setUpdateSpeedTimes(1000)
                        .setOnProgressListener(new OnProgressListener(){
                            @Override
                            public void onProgress(IDownloadRequest request,float progress){
+                               if(progress>0.3){
+                                   XDownload.get().cancleDownload(request.tag());
+                               }
                                Log.e("noah","progress="+(progress*100));
                            }
                        })

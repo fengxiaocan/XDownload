@@ -19,6 +19,7 @@ final class MultiDownloadThreadTask extends HttpDownloadRequest implements Multi
     private final File tempFile;
     private final int index;
     private final long contentLength;
+    private final long fileLength;
     private final long blockStart;
     private final long blockEnd;
     private volatile Future taskFuture;
@@ -29,6 +30,7 @@ final class MultiDownloadThreadTask extends HttpDownloadRequest implements Multi
             AutoRetryRecorder recorder,
             int index,
             long contentLength,
+            long fileLength,
             long blockStart,
             long blockEnd,
             MultiDisposer listener)
@@ -38,26 +40,15 @@ final class MultiDownloadThreadTask extends HttpDownloadRequest implements Multi
         this.tempFile=tempFile;
         this.index=index;
         this.contentLength=contentLength;
+        this.fileLength=fileLength;
         this.blockStart=blockStart;
         this.blockEnd=blockEnd;
         this.multiDisposer=listener;
-        pending();
         multiDisposer.onPending(this);
     }
 
     public final void setTaskFuture(Future taskFuture){
         this.taskFuture=taskFuture;
-    }
-
-    private void pending(){
-        if(tempFile.exists()){
-            //是否使用断点续传
-            if(!request.isUseBreakpointResume()){
-                tempFile.delete();
-            } else if(tempFile.length()>blockEnd-blockStart){
-                tempFile.delete();
-            }
-        }
     }
 
     @Override
@@ -72,21 +63,22 @@ final class MultiDownloadThreadTask extends HttpDownloadRequest implements Multi
         //是否使用断点续传
         final long start;
         if(tempFile.exists()){
-            final long tempLength=blockEnd-blockStart;
-            if(tempFile.length()==tempLength){
+            final long fileLenght=tempFile.length();
+            if(fileLenght==fileLength){
                 multiDisposer.onComplete(this);
                 return;
-            } else if(tempFile.length()>tempLength){
+            } else if(fileLenght>fileLength){
                 tempFile.delete();
                 start=blockStart;
             } else{
-                start=blockStart+tempFile.length();
+                start=blockStart+fileLenght;
             }
         } else{
             start=blockStart;
         }
 
         HttpURLConnection http=request.buildConnect();
+
         http.setRequestProperty("Range","bytes="+start+"-"+blockEnd);
         http.connect();
         multiDisposer.onConnecting(this);
@@ -94,9 +86,12 @@ final class MultiDownloadThreadTask extends HttpDownloadRequest implements Multi
         int responseCode=http.getResponseCode();
         if(responseCode >= 200&&responseCode<300){
             FileOutputStream os=new FileOutputStream(tempFile,true);
-            readInputStream(http.getInputStream(),os);
+            if(readInputStream(http.getInputStream(),os)){
+                multiDisposer.onComplete(this);
+            } else{
+                onCancel();
+            }
 
-            multiDisposer.onComplete(this);
             XDownUtils.disconnectHttp(http);
         } else{
             String stream=readStringStream(http.getErrorStream());

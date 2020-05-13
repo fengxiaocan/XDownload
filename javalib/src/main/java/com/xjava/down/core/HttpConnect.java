@@ -1,6 +1,8 @@
 package com.xjava.down.core;
 
 import com.xjava.down.base.RequestBody;
+import com.xjava.down.data.Headers;
+import com.xjava.down.data.Params;
 import com.xjava.down.dispatch.Schedulers;
 import com.xjava.down.listener.OnConnectListener;
 import com.xjava.down.listener.OnResponseListener;
@@ -15,6 +17,12 @@ public interface HttpConnect extends IConnect{
 
     @Override
     HttpConnect addHeader(String name,String value);
+
+    @Override
+    HttpConnect setParams(Params params);
+
+    @Override
+    HttpConnect setHeader(Headers header);
 
     @Override
     HttpConnect setUserAgent(String userAgent);

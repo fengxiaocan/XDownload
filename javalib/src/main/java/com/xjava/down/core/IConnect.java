@@ -1,5 +1,7 @@
 package com.xjava.down.core;
 
+import com.xjava.down.data.Headers;
+import com.xjava.down.data.Params;
 import com.xjava.down.dispatch.Schedulers;
 
 interface IConnect{
@@ -9,6 +11,10 @@ interface IConnect{
     IConnect addParams(String name,String value);
 
     IConnect addHeader(String name,String value);
+
+    IConnect setParams(Params params);
+
+    IConnect setHeader(Headers header);
 
     IConnect setUserAgent(String userAgent);
 

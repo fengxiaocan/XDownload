@@ -28,7 +28,7 @@ final class DownloadThreadRequest extends BaseHttpRequest implements IDownloadRe
     protected final XDownloadRequest httpRequest;
     protected final DownloadListenerDisposer listenerDisposer;
     protected volatile Future taskFuture;
-    protected volatile long contentLength;
+    protected volatile long sContentLength;
 
     public DownloadThreadRequest(
             XDownloadRequest request,
@@ -56,26 +56,26 @@ final class DownloadThreadRequest extends BaseHttpRequest implements IDownloadRe
     protected void httpRequest() throws Exception{
         HttpURLConnection http=httpRequest.buildConnect();
 
-        int code= http.getResponseCode();
+        int code=http.getResponseCode();
 
-        long contentLength=0;
         try{
-            contentLength=http.getContentLengthLong();
+            sContentLength=http.getContentLengthLong();
         } catch(Exception e){
-            contentLength=http.getContentLength();
+            sContentLength=http.getContentLength();
         }
+        listenerDisposer.onConnecting(this);
 //        Headers headers=getHeaders(http);
-        if(code <200||code>=400){
+        if(code<200||code >= 400){
             String stream=readStringStream(http.getErrorStream());
             listenerDisposer.onRequestError(this,code,stream);
             XDownUtils.disconnectHttp(http);
 
             retryToRun();
-        }else {
+        } else{
 
             File file=XDownUtils.getSaveFile(httpRequest);
             if(file.exists()){
-                if(file.length()==contentLength){
+                if(file.length()==sContentLength){
                     listenerDisposer.onComplete(this);
                     XDownUtils.disconnectHttp(http);
                     return;
@@ -84,13 +84,13 @@ final class DownloadThreadRequest extends BaseHttpRequest implements IDownloadRe
                 }
             }
 
-            if(contentLength>0&&httpRequest.isUseMultiThread()){
-                multiThreadRun(contentLength);
+            if(sContentLength>0&&httpRequest.isUseMultiThread()){
+                multiThreadRun(sContentLength);
             } else{
                 //独立下载
                 SingleDownloadThreadTask threadTask=new SingleDownloadThreadTask(httpRequest,
                                                                                  listenerDisposer,
-                                                                                 contentLength);
+                                                                                 sContentLength);
                 if(!threadTask.checkComplete()){
                     Future<?> future=ExecutorGather.executorQueue().submit(threadTask);
                     threadTask.setTaskFuture(future);
@@ -136,9 +136,15 @@ final class DownloadThreadRequest extends BaseHttpRequest implements IDownloadRe
         }
         //获取上次配置,决定断点下载不出错
         File cacheDir=XDownUtils.getTempCacheDir(httpRequest);
+
         File blockFile=new File(cacheDir,BLOCK_FILE_NAME);
         //是否需要删除之前的临时文件
-        boolean isDelectTemp=false;
+        final boolean isDelectTemp=!httpRequest.isUseBreakpointResume();
+        if(isDelectTemp){
+            //需要删除之前的临时缓存文件
+            XDownUtils.delectDir(cacheDir);
+        }
+
         //每一块的长度
         final long blockLength;
         //需要的执行任务数量
@@ -146,12 +152,7 @@ final class DownloadThreadRequest extends BaseHttpRequest implements IDownloadRe
         Block block;
         if(blockFile.exists()){
             block=XDownUtils.readObject(blockFile);
-            if(block!=null){
-                if(contentLength!=block.getContentLength()){
-                    isDelectTemp=true;
-                    block=createBlock(blockFile,contentLength);
-                }
-            } else{
+            if(block==null){
                 block=createBlock(blockFile,contentLength);
             }
         } else{
@@ -159,39 +160,43 @@ final class DownloadThreadRequest extends BaseHttpRequest implements IDownloadRe
         }
         blockLength=block.getBlockLength();
         threadCount=block.getThreadCount();
-        if(!httpRequest.isUseBreakpointResume()){
-            isDelectTemp=true;
-        }
+
         threadPoolExecutor=ExecutorGather.newSubtaskQueue(httpRequest.getMultiThreadCount());
 
         final MultiDisposer disposer=new MultiDisposer(httpRequest,threadCount,listenerDisposer);
 
-        long start=0, end=-1;
-        for(int index=0;index<threadCount;index++){
-            start=end+1;
-            if(index==threadCount-1){
-                end=contentLength;
-            } else{
-                end=end+blockLength;
+        synchronized(Object.class){
+            long start=0, end=-1;
+
+            for(int index=0;index<threadCount;index++){
+                start=end+1;
+                final long fileLength;
+                if(index==threadCount-1){
+                    end=contentLength;
+                    fileLength = contentLength-start;
+                } else{
+                    end=start+blockLength;
+                    fileLength=blockLength+1;
+                }
+
+                //保存的临时文件
+                File file=new File(cacheDir,httpRequest.getIdentifier()+"_temp_"+index);
+
+                MultiDownloadThreadTask task=new MultiDownloadThreadTask(httpRequest,
+                                                                         file,
+                                                                         autoRetryRecorder,
+                                                                         index,
+                                                                         contentLength,
+                                                                         fileLength
+                                                                         ,
+                                                                         start,
+                                                                         end,
+                                                                         disposer);
+                disposer.addTask(index,task);
+                Future<?> submit=threadPoolExecutor.submit(task);
+                XDownload.get().addDownload(httpRequest.getTag(),task);
+                task.setTaskFuture(submit);
             }
-            //保存的临时文件
-            File file=new File(cacheDir,httpRequest.getIdentifier()+"_temp_"+index);
-            if(isDelectTemp&&file.exists()){
-                //需要删除之前的临时缓存文件
-                file.delete();
-            }
-            MultiDownloadThreadTask task=new MultiDownloadThreadTask(httpRequest,
-                                                                     file,
-                                                                     autoRetryRecorder,
-                                                                     index,
-                                                                     contentLength,
-                                                                     start,
-                                                                     end,
-                                                                     disposer);
-            disposer.addTask(index,task);
-            Future<?> submit=threadPoolExecutor.submit(task);
-            XDownload.get().addDownload(httpRequest.getTag(),task);
-            task.setTaskFuture(submit);
         }
         disposer.onProgress(this,contentLength,0);
         threadPoolExecutor.shutdown();
@@ -272,7 +277,7 @@ final class DownloadThreadRequest extends BaseHttpRequest implements IDownloadRe
 
     @Override
     public long getTotalLength(){
-        return contentLength;
+        return sContentLength;
     }
 
     @Override

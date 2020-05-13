@@ -137,7 +137,7 @@ public class MultiDisposer implements OnDownloadConnectListener{
                             XDownUtils.closeIo(inputStream);
                         }
                     }
-                    delectDir(cacheDir);
+                    XDownUtils.delectDir(cacheDir);
 
                     listenerDisposer.onComplete(task);
                     XDownload.get().removeDownload(request.getTag());
@@ -152,20 +152,5 @@ public class MultiDisposer implements OnDownloadConnectListener{
         }
     }
 
-    private void delectDir(File dir){
-        if(dir==null){
-            return;
-        }
-        File[] files=dir.listFiles();
-        if(files!=null){
-            for(File file1: files){
-                if(file1.isDirectory()){
-                    delectDir(file1);
-                }
-                file1.delete();
-            }
-        }
-        dir.delete();
-    }
 
 }

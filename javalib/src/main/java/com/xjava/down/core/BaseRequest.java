@@ -55,6 +55,18 @@ abstract class BaseRequest implements IConnect{
     }
 
     @Override
+    public IConnect setParams(Params params){
+        this.params = params;
+        return this;
+    }
+
+    @Override
+    public IConnect setHeader(Headers header){
+        this.headers = header;
+        return this;
+    }
+
+    @Override
     public IConnect setUserAgent(String userAgent){
         this.userAgent=userAgent;
         return this;

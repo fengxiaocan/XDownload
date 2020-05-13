@@ -1,5 +1,7 @@
 package com.xjava.down.core;
 
+import com.xjava.down.data.Headers;
+import com.xjava.down.data.Params;
 import com.xjava.down.dispatch.Schedulers;
 import com.xjava.down.listener.OnDownloadConnectListener;
 import com.xjava.down.listener.OnDownloadListener;
@@ -38,6 +40,8 @@ public interface HttpDownload extends IConnect{
 
     HttpDownload setOnSpeedListener(OnSpeedListener listener);
 
+    HttpDownload delect();
+
     @Override
     HttpDownload setTag(String tag);
 
@@ -46,6 +50,12 @@ public interface HttpDownload extends IConnect{
 
     @Override
     HttpDownload addHeader(String name,String value);
+
+    @Override
+    HttpDownload setParams(Params params);
+
+    @Override
+    HttpDownload setHeader(Headers header);
 
     @Override
     HttpDownload setUserAgent(String userAgent);

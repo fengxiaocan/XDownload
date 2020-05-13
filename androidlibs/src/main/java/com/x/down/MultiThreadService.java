@@ -53,6 +53,7 @@ import java.net.URL;
             byte[] buf=new byte[1024];
             while((size=bin.read(buf))!=-1){
                 out.write(buf,0,size);
+                out.flush();
             }
             bin.close();
             out.close();

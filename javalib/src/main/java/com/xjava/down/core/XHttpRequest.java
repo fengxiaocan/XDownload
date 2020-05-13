@@ -1,6 +1,8 @@
 package com.xjava.down.core;
 
 import com.xjava.down.base.RequestBody;
+import com.xjava.down.data.Headers;
+import com.xjava.down.data.Params;
 import com.xjava.down.dispatch.Schedulers;
 import com.xjava.down.listener.OnConnectListener;
 import com.xjava.down.listener.OnResponseListener;
@@ -98,6 +100,16 @@ public class XHttpRequest extends BaseRequest implements HttpConnect{
     @Override
     public HttpConnect addHeader(String name,String value){
         return (HttpConnect)super.addHeader(name,value);
+    }
+
+    @Override
+    public HttpConnect setParams(Params params){
+        return (HttpConnect)super.setParams(params);
+    }
+
+    @Override
+    public HttpConnect setHeader(Headers header){
+        return (HttpConnect)super.setHeader(header);
     }
 
     @Override

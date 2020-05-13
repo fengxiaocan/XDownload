@@ -23,7 +23,7 @@ final class SingleDownloadThreadTask extends HttpDownloadRequest implements IDow
     private final SpeedDisposer speedDisposer;
     private final File cacheFile;
 
-    private volatile long contentLength;
+    private volatile long sContentLength;
     private volatile long sSofarLength=0;
     private volatile Future taskFuture;
     private volatile int speedLength=0;
@@ -33,7 +33,7 @@ final class SingleDownloadThreadTask extends HttpDownloadRequest implements IDow
                                     request.getAutoRetryTimes(),
                                     request.getAutoRetryInterval()));
         this.request=request;
-        this.contentLength=contentLength;
+        this.sContentLength=contentLength;
         this.listenerDisposer=listener;
         this.progressDisposer=new ProgressDisposer(request.isIgnoredProgress(),
                                                    request.getUpdateProgressTimes(),
@@ -54,9 +54,9 @@ final class SingleDownloadThreadTask extends HttpDownloadRequest implements IDow
      */
     public boolean checkComplete(){
         File file=XDownUtils.getSaveFile(request);
-        if(contentLength>0){
+        if(sContentLength>0){
             if(file.exists()){
-                if(file.length()==contentLength){
+                if(file.length()==sContentLength){
                     listenerDisposer.onComplete(this);
                     return true;
                 } else{
@@ -81,13 +81,14 @@ final class SingleDownloadThreadTask extends HttpDownloadRequest implements IDow
         }
         HttpURLConnection http=request.buildConnect();
         //预备中
-        listenerDisposer.onConnecting(this);
-//        if(contentLength<=0){
+
+//        if(sContentLength<=0){
         try{
-            contentLength=http.getContentLengthLong();
+            sContentLength=http.getContentLengthLong();
         } catch(Exception e){
-            contentLength=http.getContentLength();
+            sContentLength=http.getContentLength();
         }
+        listenerDisposer.onConnecting(this);
 //        }
 
 //        Headers headers=getHeaders(http);
@@ -96,25 +97,28 @@ final class SingleDownloadThreadTask extends HttpDownloadRequest implements IDow
         int responseCode=http.getResponseCode();
 
         if(responseCode >= 200&&responseCode<400){
-            final boolean isBreakPointResume;
+            final boolean isBreakPointResume;//是否断点续传
 
             if(cacheFile.exists()){
-                if(cacheFile.length()==contentLength){
-                    sSofarLength=contentLength;
+                if(cacheFile.length()==sContentLength){
+                    sSofarLength=sContentLength;
                     //复制临时文件到保存文件中
                     copyFile(cacheFile,XDownUtils.getSaveFile(request),true);
                     //下载完成
                     speedLength=0;
                     listenerDisposer.onComplete(this);
                     return;
-                } else if(cacheFile.length()>contentLength){
+                } else if(cacheFile.length()>sContentLength){
                     cacheFile.delete();
+                    sSofarLength=0;
                     isBreakPointResume=false;
                 } else{
+                    sSofarLength = cacheFile.length();
                     isBreakPointResume=request.isUseBreakpointResume();
                 }
             } else{
                 cacheFile.getParentFile().mkdirs();
+                sSofarLength=0;
                 isBreakPointResume=false;
             }
             if(isBreakPointResume){
@@ -122,18 +126,21 @@ final class SingleDownloadThreadTask extends HttpDownloadRequest implements IDow
 
                 //创建一个新的http请求,准备断点下载
                 HttpURLConnection urlConnection=request.buildConnect();
-                long start=contentLength-cacheFile.length();
+                long start=cacheFile.length();
 
-                sSofarLength=start;
-
-                urlConnection.setRequestProperty("Range","bytes="+start+"-"+contentLength);
+                urlConnection.setRequestProperty("Range","bytes="+start+"-"+sContentLength);
                 urlConnection.connect();
 
                 responseCode=urlConnection.getResponseCode();
                 if(responseCode >= 200&&responseCode<400){
                     FileOutputStream os=new FileOutputStream(cacheFile,true);
-                    readInputStream(urlConnection.getInputStream(),os);
-                    XDownUtils.disconnectHttp(urlConnection);
+                    if(readInputStream(urlConnection.getInputStream(),os)){
+                        XDownUtils.disconnectHttp(urlConnection);
+                    }else {
+                        XDownUtils.disconnectHttp(urlConnection);
+                        onCancel();
+                        return;
+                    }
                 } else{
                     String stream=readStringStream(urlConnection.getErrorStream());
                     listenerDisposer.onRequestError(this,responseCode,stream);
@@ -145,8 +152,13 @@ final class SingleDownloadThreadTask extends HttpDownloadRequest implements IDow
                 sSofarLength=0;
                 //重新下载
                 FileOutputStream os=new FileOutputStream(cacheFile,false);
-                readInputStream(http.getInputStream(),os);
-                XDownUtils.disconnectHttp(http);
+                if(readInputStream(http.getInputStream(),os)){
+                    XDownUtils.disconnectHttp(http);
+                }else {
+                    XDownUtils.disconnectHttp(http);
+                    onCancel();
+                    return;
+                }
             }
             copyFile(cacheFile,XDownUtils.getSaveFile(request),true);
 
@@ -205,7 +217,7 @@ final class SingleDownloadThreadTask extends HttpDownloadRequest implements IDow
 
     @Override
     public long getTotalLength(){
-        return contentLength;
+        return sContentLength;
     }
 
     @Override

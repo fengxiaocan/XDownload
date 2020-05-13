@@ -1,6 +1,8 @@
 package com.xjava.down.core;
 
 import com.xjava.down.XDownload;
+import com.xjava.down.data.Headers;
+import com.xjava.down.data.Params;
 import com.xjava.down.dispatch.Schedulers;
 import com.xjava.down.listener.OnDownloadConnectListener;
 import com.xjava.down.listener.OnDownloadListener;
@@ -9,6 +11,7 @@ import com.xjava.down.listener.OnSpeedListener;
 import com.xjava.down.task.ThreadTaskFactory;
 import com.xjava.down.tool.XDownUtils;
 
+import java.io.File;
 import java.net.HttpURLConnection;
 import java.net.URL;
 
@@ -143,6 +146,23 @@ public final class XDownloadRequest extends BaseRequest implements HttpDownload{
     }
 
     @Override
+    public HttpDownload delect(){
+        XDownload.get().cancleDownload(getTag());
+
+        File saveFile=XDownUtils.getSaveFile(this);
+        if(saveFile.exists()){
+            saveFile.delete();
+        }
+        File tempFile=XDownUtils.getTempFile(this);
+        if(tempFile.exists()){
+            tempFile.delete();
+        }
+        File tempCacheDir=XDownUtils.getTempCacheDir(this);
+        XDownUtils.delectDir(tempCacheDir);
+        return this;
+    }
+
+    @Override
     public HttpDownload setTag(String tag){
         return (HttpDownload)super.setTag(tag);
     }
@@ -161,6 +181,16 @@ public final class XDownloadRequest extends BaseRequest implements HttpDownload{
     @Override
     public HttpDownload addHeader(String name,String value){
         return (HttpDownload)super.addHeader(name,value);
+    }
+
+    @Override
+    public HttpDownload setParams(Params params){
+        return (HttpDownload)super.setParams(params);
+    }
+
+    @Override
+    public HttpDownload setHeader(Headers header){
+        return (HttpDownload)super.setHeader(header);
     }
 
     @Override

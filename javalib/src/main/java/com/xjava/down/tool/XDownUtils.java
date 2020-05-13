@@ -219,4 +219,21 @@ public class XDownUtils{
         }
     }
 
+
+
+    public static void delectDir(File dir){
+        if(dir==null){
+            return;
+        }
+        File[] files=dir.listFiles();
+        if(files!=null){
+            for(File file1: files){
+                if(file1.isDirectory()){
+                    delectDir(file1);
+                }
+                file1.delete();
+            }
+        }
+        dir.delete();
+    }
 }

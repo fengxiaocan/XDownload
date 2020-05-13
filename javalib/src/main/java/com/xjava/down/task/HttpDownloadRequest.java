@@ -16,15 +16,20 @@ abstract class HttpDownloadRequest extends BaseHttpRequest{
         super(autoRetryRecorder);
     }
 
-    protected void readInputStream(InputStream is,OutputStream os) throws IOException{
+    protected boolean readInputStream(InputStream is,OutputStream os) throws IOException{
         try{
             byte[] bytes=new byte[1024*10];
             int length;
             while((length=is.read(bytes))>0){
+                if(isCancel){
+                    onCancel();
+                    return false;
+                }
                 os.write(bytes,0,length);
+                os.flush();
                 onProgress(length);
             }
-            os.flush();
+            return true;
         } finally{
             XDownUtils.closeIo(is);
             XDownUtils.closeIo(os);
@@ -61,6 +66,7 @@ abstract class HttpDownloadRequest extends BaseHttpRequest{
                 int length;
                 while((length=input.read(bytes))>0){
                     output.write(bytes,0,length);
+                    output.flush();
                 }
                 return true;
             } finally{
