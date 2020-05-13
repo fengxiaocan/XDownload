@@ -62,6 +62,7 @@ Java中使用方法:
                .setUserAgent(ua)//UA
                .scheduleOn(Schedulers)//需要异步回调的在这里处理,实现Schedulers
                .start();
+	       
         //取消下载=暂停下载,恢复下载再走一遍请求逻辑
         XDownload.get().cancleDownload(tag);
 	//下载速度监听器
@@ -99,6 +100,7 @@ Java中使用方法:
 	void onComplete(IDownloadRequest request);
 	//下载失败
     	void onFailure(IDownloadRequest request);
+
 
 Android中使用方式(其他方法跟Java一致):
 
