@@ -15,7 +15,7 @@ Add it in your root build.gradle at the end of repositories:
 Step 2. Add the dependency
 
 	  dependencies {
-	          implementation 'com.github.fengxiaocan:XDownload:v0.1.3'
+	          implementation 'com.github.fengxiaocan:XDownload:v0.1.4'
 	  }
   
 jar包下载:[Downloader.jar](./javalib/javalib.jar)
