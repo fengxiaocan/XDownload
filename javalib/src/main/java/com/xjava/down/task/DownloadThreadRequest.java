@@ -6,6 +6,7 @@ import com.xjava.down.XDownload;
 import com.xjava.down.base.IConnectRequest;
 import com.xjava.down.base.IDownloadRequest;
 import com.xjava.down.core.XDownloadRequest;
+import com.xjava.down.data.Headers;
 import com.xjava.down.impl.DownloadListenerDisposer;
 import com.xjava.down.impl.MultiDisposer;
 import com.xjava.down.listener.OnDownloadConnectListener;
@@ -55,32 +56,43 @@ final class DownloadThreadRequest extends BaseHttpRequest implements IDownloadRe
     @Override
     protected void httpRequest() throws Exception{
         HttpURLConnection http=httpRequest.buildConnect();
+        //优先获取文件长度再回调
+        sContentLength=XDownUtils.getContentLength(http);
+        //连接中
+        listenerDisposer.onConnecting(this);
+
+        if(sContentLength<=0){
+            //长度获取不到的时候重新连接 获取不到长度则要求http请求不要gzip压缩
+            http.setRequestProperty("Accept-Encoding","identity");
+            http.connect();
+            sContentLength=XDownUtils.getContentLength(http);
+            //连接中
+            listenerDisposer.onConnecting(this);
+        }
 
         int code=http.getResponseCode();
 
-        try{
-            sContentLength=http.getContentLengthLong();
-        } catch(Exception e){
-            sContentLength=http.getContentLength();
-        }
-        listenerDisposer.onConnecting(this);
-//        Headers headers=getHeaders(http);
         if(code<200||code >= 400){
+            //获取错误信息
             String stream=readStringStream(http.getErrorStream());
             listenerDisposer.onRequestError(this,code,stream);
+            //断开请求
             XDownUtils.disconnectHttp(http);
-
+            //重试
             retryToRun();
         } else{
+            //先断开请求
+            XDownUtils.disconnectHttp(http);
 
-            File file=XDownUtils.getSaveFile(httpRequest);
-            if(file.exists()){
-                if(file.length()==sContentLength){
-                    listenerDisposer.onComplete(this);
-                    XDownUtils.disconnectHttp(http);
-                    return;
-                } else{
-                    file.delete();
+            if(sContentLength>0){
+                File file=XDownUtils.getSaveFile(httpRequest);
+                if(file.exists()){
+                    if(file.length()==sContentLength){
+                        listenerDisposer.onComplete(this);
+                        return;
+                    } else{
+                        file.delete();
+                    }
                 }
             }
 
@@ -99,6 +111,7 @@ final class DownloadThreadRequest extends BaseHttpRequest implements IDownloadRe
             }
         }
     }
+
 
     @Override
     protected void onRetry(){
@@ -173,7 +186,7 @@ final class DownloadThreadRequest extends BaseHttpRequest implements IDownloadRe
                 final long fileLength;
                 if(index==threadCount-1){
                     end=contentLength;
-                    fileLength = contentLength-start;
+                    fileLength=contentLength-start;
                 } else{
                     end=start+blockLength;
                     fileLength=blockLength+1;
@@ -187,8 +200,7 @@ final class DownloadThreadRequest extends BaseHttpRequest implements IDownloadRe
                                                                          autoRetryRecorder,
                                                                          index,
                                                                          contentLength,
-                                                                         fileLength
-                                                                         ,
+                                                                         fileLength,
                                                                          start,
                                                                          end,
                                                                          disposer);

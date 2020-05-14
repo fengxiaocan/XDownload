@@ -220,7 +220,6 @@ public class XDownUtils{
     }
 
 
-
     public static void delectDir(File dir){
         if(dir==null){
             return;
@@ -235,5 +234,13 @@ public class XDownUtils{
             }
         }
         dir.delete();
+    }
+
+    public static long getContentLength(HttpURLConnection http){
+        try{
+            return http.getHeaderFieldLong("Content-Length",-1);
+        } catch(Exception e){
+        }
+        return 0;
     }
 }

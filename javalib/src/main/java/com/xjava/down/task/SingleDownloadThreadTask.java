@@ -13,6 +13,7 @@ import com.xjava.down.tool.XDownUtils;
 
 import java.io.File;
 import java.io.FileOutputStream;
+import java.io.IOException;
 import java.net.HttpURLConnection;
 import java.util.concurrent.Future;
 
@@ -80,19 +81,20 @@ final class SingleDownloadThreadTask extends HttpDownloadRequest implements IDow
             return;
         }
         HttpURLConnection http=request.buildConnect();
-        //预备中
 
-//        if(sContentLength<=0){
-        try{
-            sContentLength=http.getContentLengthLong();
-        } catch(Exception e){
-            sContentLength=http.getContentLength();
-        }
+        sContentLength=XDownUtils.getContentLength(http);
+        //连接中
         listenerDisposer.onConnecting(this);
-//        }
 
-//        Headers headers=getHeaders(http);
-//        String contentType=headers.getValue("Content-Type");
+        if(sContentLength<=0){
+            //长度获取不到的时候重新连接 获取不到长度则要求http请求不要gzip压缩
+            http.setRequestProperty("Accept-Encoding","identity");
+            http.connect();
+            //重新获取长度
+            sContentLength=XDownUtils.getContentLength(http);
+            //连接中
+            listenerDisposer.onConnecting(this);
+        }
 
         int responseCode=http.getResponseCode();
 
@@ -100,21 +102,27 @@ final class SingleDownloadThreadTask extends HttpDownloadRequest implements IDow
             final boolean isBreakPointResume;//是否断点续传
 
             if(cacheFile.exists()){
-                if(cacheFile.length()==sContentLength){
-                    sSofarLength=sContentLength;
-                    //复制临时文件到保存文件中
-                    copyFile(cacheFile,XDownUtils.getSaveFile(request),true);
-                    //下载完成
-                    speedLength=0;
-                    listenerDisposer.onComplete(this);
-                    return;
-                } else if(cacheFile.length()>sContentLength){
+                if(sContentLength>0){
+                    if(cacheFile.length()==sContentLength){
+                        sSofarLength=sContentLength;
+                        //复制临时文件到保存文件中
+                        copyFile(cacheFile,XDownUtils.getSaveFile(request),true);
+                        //下载完成
+                        speedLength=0;
+                        listenerDisposer.onComplete(this);
+                        return;
+                    } else if(cacheFile.length()>sContentLength){
+                        cacheFile.delete();
+                        sSofarLength=0;
+                        isBreakPointResume=false;
+                    } else{
+                        sSofarLength=cacheFile.length();
+                        isBreakPointResume=request.isUseBreakpointResume();
+                    }
+                } else{
                     cacheFile.delete();
                     sSofarLength=0;
                     isBreakPointResume=false;
-                } else{
-                    sSofarLength = cacheFile.length();
-                    isBreakPointResume=request.isUseBreakpointResume();
                 }
             } else{
                 cacheFile.getParentFile().mkdirs();
@@ -122,63 +130,66 @@ final class SingleDownloadThreadTask extends HttpDownloadRequest implements IDow
                 isBreakPointResume=false;
             }
             if(isBreakPointResume){
-                XDownUtils.disconnectHttp(http);
 
-                //创建一个新的http请求,准备断点下载
-                HttpURLConnection urlConnection=request.buildConnect();
                 long start=cacheFile.length();
+                http.setRequestProperty("Range","bytes="+start+"-"+sContentLength);
+                //重新连接
+                http.connect();
 
-                urlConnection.setRequestProperty("Range","bytes="+start+"-"+sContentLength);
-                urlConnection.connect();
-
-                responseCode=urlConnection.getResponseCode();
+                responseCode=http.getResponseCode();
+                //重新判断
                 if(responseCode >= 200&&responseCode<400){
-                    FileOutputStream os=new FileOutputStream(cacheFile,true);
-                    if(readInputStream(urlConnection.getInputStream(),os)){
-                        XDownUtils.disconnectHttp(urlConnection);
-                    }else {
-                        XDownUtils.disconnectHttp(urlConnection);
-                        onCancel();
-                        return;
-                    }
-                } else{
-                    String stream=readStringStream(urlConnection.getErrorStream());
-                    listenerDisposer.onRequestError(this,responseCode,stream);
-                    XDownUtils.disconnectHttp(urlConnection);
-
-                    retryToRun();
-                }
-            } else{
-                sSofarLength=0;
-                //重新下载
-                FileOutputStream os=new FileOutputStream(cacheFile,false);
-                if(readInputStream(http.getInputStream(),os)){
-                    XDownUtils.disconnectHttp(http);
-                }else {
-                    XDownUtils.disconnectHttp(http);
-                    onCancel();
+                    onResponseError(http,responseCode);
                     return;
                 }
             }
+
+            //重新下载
+            if(!downReadInput(http,isBreakPointResume)){
+                onCancel();
+                return;
+            }
+            //复制下载完成的文件
             copyFile(cacheFile,XDownUtils.getSaveFile(request),true);
 
-
+            //处理最后的进度
             if(!progressDisposer.isIgnoredProgress()){
                 listenerDisposer.onProgress(this,1);
             }
-
+            //处理最后的速度
             if(!speedDisposer.isIgnoredSpeed()){
                 speedDisposer.onSpeed(this,speedLength);
             }
             speedLength=0;
+            //完成回调
             listenerDisposer.onComplete(this);
         } else{
-            String stream=readStringStream(http.getErrorStream());
-            listenerDisposer.onRequestError(this,responseCode,stream);
-
-            XDownUtils.disconnectHttp(http);
-            retryToRun();
+            onResponseError(http,responseCode);
         }
+    }
+
+    private boolean downReadInput(HttpURLConnection http,boolean append) throws IOException{
+        try{
+            FileOutputStream os=new FileOutputStream(cacheFile,append);
+            return readInputStream(http.getInputStream(),os);
+        } finally{
+            XDownUtils.disconnectHttp(http);
+        }
+    }
+
+    /**
+     * 处理失败的回调
+     *
+     * @param http
+     * @param responseCode
+     * @throws IOException
+     */
+    private void onResponseError(HttpURLConnection http,int responseCode) throws IOException{
+        String stream=readStringStream(http.getErrorStream());
+        listenerDisposer.onRequestError(this,responseCode,stream);
+
+        XDownUtils.disconnectHttp(http);
+        retryToRun();
     }
 
     @Override

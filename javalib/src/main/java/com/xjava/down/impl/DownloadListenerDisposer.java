@@ -133,7 +133,7 @@ public class DownloadListenerDisposer
 
     @Override
     public void onComplete(final IDownloadRequest request){
-        if(onProgressListener==null){
+        if(onDownloadListener==null){
             return;
         }
         if(schedulers!=null){

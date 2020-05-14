@@ -78,9 +78,9 @@ final class MultiDownloadThreadTask extends HttpDownloadRequest implements Multi
         }
 
         HttpURLConnection http=request.buildConnect();
-
         http.setRequestProperty("Range","bytes="+start+"-"+blockEnd);
         http.connect();
+
         multiDisposer.onConnecting(this);
 
         int responseCode=http.getResponseCode();
