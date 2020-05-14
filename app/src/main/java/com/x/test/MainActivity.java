@@ -2,14 +2,11 @@ package com.x.test;
 
 
 import android.os.Bundle;
-import android.util.Log;
 
 import androidx.appcompat.app.AppCompatActivity;
 
 import com.x.down.AndroidDownload;
-import com.xjava.down.base.IRequest;
-import com.xjava.down.data.Response;
-import com.xjava.down.listener.OnResponseListener;
+import com.xjava.down.base.IDownloadRequest;
 
 public class MainActivity extends AppCompatActivity{
     @Override
@@ -19,23 +16,17 @@ public class MainActivity extends AppCompatActivity{
 
         AndroidDownload.init(this);
 
-        AndroidDownload.request("https://")
-                       .setOnResponseListener(new OnResponseListener(){
-                           @Override
-                           public void onResponse(IRequest request,Response response){
-                               if(response.isSuccess()){
-                                   Log.e("noah",response.result());
-                               } else{
-                                   Log.e("noah",response.error());
-                               }
-                           }
+        AndroidDownload.download("").setDownloadListener(new com.xjava.down.listener.OnDownloadListener(){
+            @Override
+            public void onComplete(IDownloadRequest iDownloadRequest){
 
-                           @Override
-                           public void onError(IRequest request,Exception exception){
-                               Log.e("noah","onError="+exception.getMessage());
-                           }
-                       })
-                       .start();
+            }
+
+            @Override
+            public void onFailure(IDownloadRequest iDownloadRequest){
+
+            }
+        }).start();
 
     }
 

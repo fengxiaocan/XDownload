@@ -15,7 +15,7 @@ import java.io.File;
 import java.net.HttpURLConnection;
 import java.net.URL;
 
-public final class XDownloadRequest extends BaseRequest implements HttpDownload{
+public class XDownloadRequest extends BaseRequest implements HttpDownload{
     protected String saveFile;//文件保存位置
     protected String cacheDir=XDownload.get().config().getCacheDir();//默认UA
     //默认下载的多线程数

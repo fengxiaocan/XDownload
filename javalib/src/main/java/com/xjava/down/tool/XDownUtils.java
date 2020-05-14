@@ -238,9 +238,8 @@ public class XDownUtils{
 
     public static long getContentLength(HttpURLConnection http){
         try{
-            return http.getHeaderFieldLong("Content-Length",-1);
-        } catch(Exception e){
-        }
+            return Long.parseLong(http.getHeaderField("Content-Length"));
+        } catch(Exception e){}
         return 0;
     }
 }

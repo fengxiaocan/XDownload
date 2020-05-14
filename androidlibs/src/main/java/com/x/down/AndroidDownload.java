@@ -4,22 +4,17 @@ import android.content.Context;
 import android.os.Build;
 
 import com.xjava.down.XDownload;
+import com.xjava.down.config.IConfig;
 import com.xjava.down.config.XConfig;
 import com.xjava.down.core.HttpConnect;
 import com.xjava.down.core.HttpDownload;
 
 public final class AndroidDownload{
 
-    public static XConfig init(Context context){
-        XConfig config=XConfig.with(context.getExternalCacheDir().getAbsolutePath())
-                              .userAgent(getDefaultUserAgent())
-                              .build();
+    public static IConfig init(Context context){
+        XConfig config=new XConfig(context.getExternalCacheDir().getAbsolutePath()).userAgent(getDefaultUserAgent());
         XDownload.get().config(config);
         return config;
-    }
-
-    public static void init(XConfig xConfig){
-        XDownload.get().config(xConfig);
     }
 
     public static HttpConnect request(String baseUrl){
@@ -77,7 +72,7 @@ public final class AndroidDownload{
     }
 
     public void setMaxThreadCount(int count){
-         XDownload.get().setMaxThreadCount(count);
+        XDownload.get().setMaxThreadCount(count);
     }
 
 }

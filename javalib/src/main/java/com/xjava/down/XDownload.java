@@ -47,8 +47,8 @@ public final class XDownload{
 
     public synchronized XConfig config(){
         if(setting==null){
-            String xDownload=new File(System.getProperty("user.dir"),"xDownload").getAbsolutePath();
-            setting=XConfig.with(xDownload).build();
+            String cachePath=new File(System.getProperty("user.dir"),"xDownload").getAbsolutePath();
+            setting= new XConfig(cachePath);
         }
         return setting;
     }
