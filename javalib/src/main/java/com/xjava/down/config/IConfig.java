@@ -1,6 +1,10 @@
 package com.xjava.down.config;
 
 public interface IConfig{
+    int MULTI_THREAD_MAX_DOWNLOAD_SIZE=100*1024;//默认多线程下载的单线程最大下载文件块大小,默认100KB
+
+    int MULTI_THREAD_MIN_DOWNLOAD_SIZE=50*1024;//多线程下载的单线程最大下载文件块大小50KB
+
     IConfig cacheDir(String cacheDir);
 
     IConfig sameTimeDownloadCount(int sameTimeDownloadCount);

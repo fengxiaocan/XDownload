@@ -87,6 +87,8 @@ final class SingleDownloadThreadTask extends HttpDownloadRequest implements IDow
         listenerDisposer.onConnecting(this);
 
         if(sContentLength<=0){
+            XDownUtils.disconnectHttp(http);
+            http=request.buildConnect();
             //长度获取不到的时候重新连接 获取不到长度则要求http请求不要gzip压缩
             http.setRequestProperty("Accept-Encoding","identity");
             http.connect();
@@ -98,7 +100,7 @@ final class SingleDownloadThreadTask extends HttpDownloadRequest implements IDow
 
         int responseCode=http.getResponseCode();
 
-        if(responseCode >= 200&&responseCode<400){
+        if(isSuccess(responseCode)){
             final boolean isBreakPointResume;//是否断点续传
 
             if(cacheFile.exists()){
@@ -130,6 +132,8 @@ final class SingleDownloadThreadTask extends HttpDownloadRequest implements IDow
                 isBreakPointResume=false;
             }
             if(isBreakPointResume){
+                XDownUtils.disconnectHttp(http);
+                http=request.buildConnect();
 
                 long start=cacheFile.length();
                 http.setRequestProperty("Range","bytes="+start+"-"+sContentLength);
@@ -138,7 +142,7 @@ final class SingleDownloadThreadTask extends HttpDownloadRequest implements IDow
 
                 responseCode=http.getResponseCode();
                 //重新判断
-                if(responseCode >= 200&&responseCode<400){
+                if(!isSuccess(responseCode)){
                     onResponseError(http,responseCode);
                     return;
                 }
@@ -146,7 +150,6 @@ final class SingleDownloadThreadTask extends HttpDownloadRequest implements IDow
 
             //重新下载
             if(!downReadInput(http,isBreakPointResume)){
-                onCancel();
                 return;
             }
             //复制下载完成的文件

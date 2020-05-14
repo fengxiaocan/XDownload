@@ -84,13 +84,12 @@ final class MultiDownloadThreadTask extends HttpDownloadRequest implements Multi
         multiDisposer.onConnecting(this);
 
         int responseCode=http.getResponseCode();
-        if(responseCode >= 200&&responseCode<300){
+        if(isSuccess(responseCode)){
             FileOutputStream os=new FileOutputStream(tempFile,true);
-            if(readInputStream(http.getInputStream(),os)){
-                multiDisposer.onComplete(this);
-            } else{
-                onCancel();
+            if(!readInputStream(http.getInputStream(),os)){
+               return;
             }
+            multiDisposer.onComplete(this);
 
             XDownUtils.disconnectHttp(http);
         } else{

@@ -28,6 +28,7 @@ abstract class BaseHttpRequest implements Runnable{
             }
             httpRequest();
         } catch(Exception e){
+            e.printStackTrace();
             if(isCancel){
                 onCancel();
             }else{

@@ -28,10 +28,12 @@ public class MultiDisposer implements OnDownloadConnectListener{
         this.request=request;
         this.blockCount=blockCount;
         this.listenerDisposer=disposer;
-        this.progressDisposer=new ProgressDisposer(request.isIgnoredProgress(),
-                                                   request.getUpdateProgressTimes(),
-                                                   disposer);
-        this.speedDisposer=new SpeedDisposer(request.isIgnoredSpeed(),request.getUpdateSpeedTimes(),disposer);
+        final boolean ignoredProgress=request.isIgnoredProgress();
+        final int updateProgressTimes=request.getUpdateProgressTimes();
+        this.progressDisposer=new ProgressDisposer(ignoredProgress,updateProgressTimes,disposer);
+        final boolean ignoredSpeed=request.isIgnoredSpeed();
+        final int updateSpeedTimes=request.getUpdateSpeedTimes();
+        this.speedDisposer=new SpeedDisposer(ignoredSpeed,updateSpeedTimes,disposer);
     }
 
     @Override
@@ -114,6 +116,7 @@ public class MultiDisposer implements OnDownloadConnectListener{
                     speedDisposer.onSpeed(task,speedLength);
                 }
                 speedLength=0;
+
                 File file=new File(task.getFilePath());
                 byte[] bytes=new byte[1024*8];
                 FileOutputStream outputStream=null;
@@ -140,6 +143,7 @@ public class MultiDisposer implements OnDownloadConnectListener{
                     XDownUtils.delectDir(cacheDir);
 
                     listenerDisposer.onComplete(task);
+
                     XDownload.get().removeDownload(request.getTag());
                 } catch(Exception e){
                     onFailure(task);

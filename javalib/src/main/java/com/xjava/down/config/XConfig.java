@@ -52,13 +52,13 @@ public class XConfig implements IConfig{
 
     @Override
     public XConfig multiThreadMaxSize(int multiThreadMaxSize){
-        this.multiThreadMaxDownloadSize=multiThreadMaxSize;
+        this.multiThreadMaxDownloadSize=Math.max(multiThreadMaxSize,MULTI_THREAD_MAX_DOWNLOAD_SIZE);
         return this;
     }
 
     @Override
     public XConfig multiThreadMinSize(int multiThreadMinSize){
-        this.multiThreadMinDownloadSize=multiThreadMinSize;
+        this.multiThreadMinDownloadSize=Math.max(multiThreadMinSize,MULTI_THREAD_MIN_DOWNLOAD_SIZE);
         return this;
     }
 

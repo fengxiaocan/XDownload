@@ -251,6 +251,7 @@ public class XDownloadRequest extends BaseRequest implements HttpDownload{
     public boolean isIgnoredProgress(){
         return ignoredProgress;
     }
+
     public boolean isIgnoredSpeed(){
         return ignoredSpeed;
     }

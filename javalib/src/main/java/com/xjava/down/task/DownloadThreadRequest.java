@@ -6,7 +6,6 @@ import com.xjava.down.XDownload;
 import com.xjava.down.base.IConnectRequest;
 import com.xjava.down.base.IDownloadRequest;
 import com.xjava.down.core.XDownloadRequest;
-import com.xjava.down.data.Headers;
 import com.xjava.down.impl.DownloadListenerDisposer;
 import com.xjava.down.impl.MultiDisposer;
 import com.xjava.down.listener.OnDownloadConnectListener;
@@ -63,6 +62,8 @@ final class DownloadThreadRequest extends BaseHttpRequest implements IDownloadRe
 
         if(sContentLength<=0){
             //长度获取不到的时候重新连接 获取不到长度则要求http请求不要gzip压缩
+            XDownUtils.disconnectHttp(http);
+            http=httpRequest.buildConnect();
             http.setRequestProperty("Accept-Encoding","identity");
             http.connect();
             sContentLength=XDownUtils.getContentLength(http);
@@ -72,7 +73,7 @@ final class DownloadThreadRequest extends BaseHttpRequest implements IDownloadRe
 
         int code=http.getResponseCode();
 
-        if(code<200||code >= 400){
+        if(!isSuccess(code)){
             //获取错误信息
             String stream=readStringStream(http.getErrorStream());
             listenerDisposer.onRequestError(this,code,stream);
@@ -233,20 +234,18 @@ final class DownloadThreadRequest extends BaseHttpRequest implements IDownloadRe
         final long maxLength=configThreadCount*threadMaxSize;
         final long minLength=configThreadCount*threadMinSize;
         //智能计算执行任务的数量
-        if(contentLength>maxLength){
+        if(contentLength<=minLength){
+            //如果文件过小,设定的线程有浪费,控制线程的创建少于设定的线程
+            threadCount=1;
+            blockLength=minLength;
+        } else if(contentLength>maxLength){
             //如果文件过大,设定的线程不足够
             blockLength=threadMaxSize;
             threadCount=(int)(contentLength/blockLength);
         } else{
-            //如果文件过小,设定的线程有浪费,控制线程的创建少于设定的线程
-            if(contentLength<minLength){
-                blockLength=minLength;
-                threadCount=(int)(contentLength/blockLength);
-            } else{
-                //正常的线程
-                blockLength=contentLength/configThreadCount;
-                threadCount=configThreadCount;
-            }
+            //正常的线程
+            blockLength=contentLength/configThreadCount;
+            threadCount=configThreadCount;
         }
         Block block=new Block(contentLength,blockLength,threadCount);
         XDownUtils.writeObject(blockFile,block);

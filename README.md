@@ -15,10 +15,10 @@ Add it in your root build.gradle at the end of repositories:
 Step 2. Add the dependency
 
 	  dependencies {
-	          implementation 'com.github.fengxiaocan:XDownload:v0.1.5'
+	          implementation 'com.github.fengxiaocan:XDownload:v0.1.6'
 	  }
   
-jar包下载:[Downloader.jar](./javalib/javalib.jar)
+jar包下载:[Downloader.jar](./androidlibs/libs/javalib.jar)
 
 JavaGUI各平台可视化操作界面[DownloaderGUI.jar](./DownloaderGUI.jar)
 

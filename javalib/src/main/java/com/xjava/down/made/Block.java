@@ -5,7 +5,7 @@ import java.io.Serializable;
 public final class Block implements Serializable{
     private long contentLength;
     private long blockLength;
-    private int threadCount;
+    private int threadCount = 1;
 
     public Block(){
     }

@@ -12,6 +12,8 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.net.HttpURLConnection;
 import java.security.MessageDigest;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public class XDownUtils{
     private static String getMd5(boolean lowerCase,byte[] btInput){
@@ -123,21 +125,15 @@ public class XDownUtils{
 
     public static String getFileSuffix(XDownloadRequest xDownloadRequest){
         final String url=xDownloadRequest.getConnectUrl();
-        final int index1=url.indexOf("?");
-        final String subUrl;
-        if(index1>0){
-            subUrl=url.substring(0,index1);
-        } else{
-            subUrl=url;
-        }
-        int index2=subUrl.lastIndexOf(".");
-        int index3=subUrl.lastIndexOf("/");
-        if(index3>index2){
-            return ".unknown";
-        }
-        if(index2>0){
-            return subUrl.substring(index2);
-        } else{
+        final int index=url.lastIndexOf(".");
+        if(index>0){
+            String matches=getFirstMatches("\\.[A-Za-z0-9]*",url.substring(index));
+            if(matches==null){
+                return ".unknown";
+            } else{
+                return matches;
+            }
+        }else {
             return ".unknown";
         }
     }
@@ -145,7 +141,6 @@ public class XDownUtils{
     public static boolean isStringEmpty(String content){
         return content==null||content.equals("");
     }
-
 
     public static boolean writeObject(File file,Object obj){
         ObjectOutputStream stream=null;
@@ -242,4 +237,26 @@ public class XDownUtils{
         } catch(Exception e){}
         return 0;
     }
+
+
+    /**
+     * 获取正则匹配的第一个
+     *
+     * @param regex
+     * @param input
+     * @return
+     */
+    private static String getFirstMatches(String regex,String input){
+        if(input==null){
+            return null;
+        }
+        String matches=null;
+        Pattern pattern=Pattern.compile(regex);
+        Matcher matcher=pattern.matcher(input);
+        if(matcher.find()){
+            matches=matcher.group();
+        }
+        return matches;
+    }
+
 }

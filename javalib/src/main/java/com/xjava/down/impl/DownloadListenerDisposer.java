@@ -9,11 +9,11 @@ import com.xjava.down.listener.OnSpeedListener;
 
 public class DownloadListenerDisposer
         implements OnDownloadConnectListener, OnDownloadListener, OnProgressListener, OnSpeedListener{
-    private Schedulers schedulers;
-    private OnDownloadListener onDownloadListener;
-    private OnProgressListener onProgressListener;
-    private OnSpeedListener onSpeedListener;
-    private OnDownloadConnectListener onConnectListener;
+    private final Schedulers schedulers;
+    private final OnDownloadListener onDownloadListener;
+    private final OnProgressListener onProgressListener;
+    private final OnSpeedListener onSpeedListener;
+    private final OnDownloadConnectListener onConnectListener;
 
     public DownloadListenerDisposer(
             Schedulers schedulers,

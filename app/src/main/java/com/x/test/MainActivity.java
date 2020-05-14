@@ -2,6 +2,7 @@ package com.x.test;
 
 
 import android.os.Bundle;
+import android.util.Log;
 
 import androidx.appcompat.app.AppCompatActivity;
 
@@ -16,15 +17,15 @@ public class MainActivity extends AppCompatActivity{
 
         AndroidDownload.init(this);
 
-        AndroidDownload.download("").setDownloadListener(new com.xjava.down.listener.OnDownloadListener(){
+        AndroidDownload.download("http://s1.dgtle.com/dgtle_img/ins/2020/05/14/22eae202005141151212323_1800_500.png").setDownloadListener(new com.xjava.down.listener.OnDownloadListener(){
             @Override
             public void onComplete(IDownloadRequest iDownloadRequest){
-
+                Log.e("noah","onComplete");
             }
 
             @Override
             public void onFailure(IDownloadRequest iDownloadRequest){
-
+                Log.e("noah","onFailure");
             }
         }).start();
 
