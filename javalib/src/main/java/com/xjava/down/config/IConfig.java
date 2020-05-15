@@ -11,6 +11,8 @@ public interface IConfig{
 
     IConfig userAgent(String userAgent);
 
+    IConfig bufferedSize(int buffSize);
+
     IConfig multiThreadCount(int multiThreadCount);
 
     IConfig multiThreadMaxSize(int multiThreadMaxSize);
@@ -35,9 +37,11 @@ public interface IConfig{
 
     IConfig updateSpeedTimes(int updateSpeedTimes);
 
-    IConfig isWifiRequired(boolean isWifiRequired);
+    IConfig permitAllSslCertificate(boolean permit);
 
     IConfig connectTimeOut(int connectTimeOut);
+
+    IConfig iOTimeOut(int iOTimeOut);
 
     IConfig defaultName(@DefaultName int defaultName);
 

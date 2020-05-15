@@ -3,17 +3,27 @@ package com.xjava.down.tool;
 import com.xjava.down.XDownload;
 import com.xjava.down.config.XConfig;
 import com.xjava.down.core.XDownloadRequest;
+import com.xjava.down.impl.UnSafeTrustManager;
 
 import java.io.Closeable;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
+import java.io.InputStream;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.net.HttpURLConnection;
+import java.security.KeyStore;
 import java.security.MessageDigest;
+import java.security.cert.Certificate;
+import java.security.cert.CertificateFactory;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.SSLSocketFactory;
+import javax.net.ssl.TrustManager;
+import javax.net.ssl.TrustManagerFactory;
 
 public class XDownUtils{
     private static String getMd5(boolean lowerCase,byte[] btInput){
@@ -133,7 +143,7 @@ public class XDownUtils{
             } else{
                 return matches;
             }
-        }else {
+        } else{
             return ".unknown";
         }
     }
@@ -259,4 +269,61 @@ public class XDownUtils{
         return matches;
     }
 
+    /**
+     * 获取安全证书
+     * @param cerPath
+     * @return
+     */
+    public static SSLSocketFactory getCertificate(String cerPath){
+        InputStream is=null;
+        try{
+            CertificateFactory cf=CertificateFactory.getInstance("X.509");
+            is=new FileInputStream(cerPath);
+            Certificate ca=cf.generateCertificate(is);
+
+            // Create a KeyStore containing our trusted CAs
+            KeyStore keyStore=KeyStore.getInstance(KeyStore.getDefaultType());
+            keyStore.load(null,null);
+            keyStore.setCertificateEntry("ca",ca);
+
+            // Create a TrustManager that trusts the CAs in our KeyStore
+            String defaultAlgorithm=TrustManagerFactory.getDefaultAlgorithm();
+            TrustManagerFactory tmf=TrustManagerFactory.getInstance(defaultAlgorithm);
+            tmf.init(keyStore);
+
+            // Create an SSLContext that uses our TrustManager
+            SSLContext sslContext=SSLContext.getInstance("TLS");
+            sslContext.init(null,tmf.getTrustManagers(),null);//信任证书密钥
+//            sslContext.init(null, new TrustManager[]{new UnSafeTrustManager()}, null);//信任所有
+            return sslContext.getSocketFactory();
+        } catch(Exception e){
+            e.printStackTrace();
+        } finally{
+            closeIo(is);
+        }
+        return null;
+    }
+
+    /**
+     * 不安全的信任管理
+     * @return
+     */
+    public static SSLSocketFactory getUnSafeCertificate(){
+        try{
+            SSLContext sslContext=SSLContext.getInstance("TLS");
+            sslContext.init(null,new TrustManager[]{new UnSafeTrustManager()},null);//信任所有
+            return sslContext.getSocketFactory();
+        } catch(Exception e){
+            e.printStackTrace();
+        }
+        return null;
+    }
+
+    public static String jsonString(Object ... array){
+        StringBuilder builder=new StringBuilder();
+        for(Object o: array){
+            builder.append(o);
+        }
+        return builder.toString();
+    }
 }

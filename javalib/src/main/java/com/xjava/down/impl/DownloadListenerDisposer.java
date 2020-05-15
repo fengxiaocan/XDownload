@@ -6,6 +6,7 @@ import com.xjava.down.listener.OnDownloadConnectListener;
 import com.xjava.down.listener.OnDownloadListener;
 import com.xjava.down.listener.OnProgressListener;
 import com.xjava.down.listener.OnSpeedListener;
+import com.xjava.down.tool.XDownUtils;
 
 public class DownloadListenerDisposer
         implements OnDownloadConnectListener, OnDownloadListener, OnProgressListener, OnSpeedListener{
@@ -133,6 +134,7 @@ public class DownloadListenerDisposer
 
     @Override
     public void onComplete(final IDownloadRequest request){
+        XDownUtils.delectDir(XDownUtils.getTempCacheDir(request.request()));
         if(onDownloadListener==null){
             return;
         }

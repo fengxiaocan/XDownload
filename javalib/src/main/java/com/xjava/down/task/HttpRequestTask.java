@@ -50,12 +50,11 @@ class HttpRequestTask extends BaseHttpRequest implements IRequest, IConnectReque
     @Override
     protected void httpRequest() throws Exception{
         HttpURLConnection http=httpRequest.buildConnect();
-        //预备中
-        listenerDisposer.onConnecting(this);
 
+        listenerDisposer.onConnecting(this);
+        //POST请求
         if(httpRequest.isPost()){
             RequestBody body=httpRequest.getRequestBody();
-
             if(body!=null){
                 MediaType mediaType=body.contentType();
                 if(mediaType.getType()!=null){
@@ -69,18 +68,43 @@ class HttpRequestTask extends BaseHttpRequest implements IRequest, IConnectReque
             }
         }
 
-        int code=http.getResponseCode();
+        int responseCode=http.getResponseCode();
+        //是否需要重定向
+        if(isNeedRedirects(responseCode)){
+            http=redirectsConnect(http,httpRequest);
+            if(responseCode==307){
+                http.setRequestMethod("GET");
+            }
+            http.connect();
+            listenerDisposer.onConnecting(this);
 
+            if(http.getRequestMethod().equals("POST")){
+                RequestBody body=httpRequest.getRequestBody();
+                if(body!=null){
+                    MediaType mediaType=body.contentType();
+                    if(mediaType.getType()!=null){
+                        http.setRequestProperty("Content-Type",mediaType.getType());
+                    }
+                    if(body.contentLength()!=-1){
+                        http.setRequestProperty("Content-Length",String.valueOf(body.contentLength()));
+                    }
+                    HttpIoSink ioSink=new HttpIoSink(http.getOutputStream());
+                    body.writeTo(ioSink);
+                }
+            }
+            responseCode=http.getResponseCode();
+        }
+        //请求头
         Headers headers=getHeaders(http);
 
-        if(isSuccess(code)){
+        if(isSuccess(responseCode)){
             String stream=readStringStream(http.getInputStream());
             XDownUtils.disconnectHttp(http);
-            listenerDisposer.onResponse(this,Response.builderSuccess(stream,code,headers));
+            listenerDisposer.onResponse(this,Response.builderSuccess(stream,responseCode,headers));
         } else{
             String error=readStringStream(http.getErrorStream());
             XDownUtils.disconnectHttp(http);
-            listenerDisposer.onResponse(this,Response.builderFailure(code,headers,error));
+            listenerDisposer.onResponse(this,Response.builderFailure(responseCode,headers,error));
             retryToRun();
         }
     }

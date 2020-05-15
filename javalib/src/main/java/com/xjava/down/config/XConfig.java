@@ -6,6 +6,7 @@ public class XConfig implements IConfig{
     private String userAgent="";//默认UA
     private int sameTimeDownloadCount=2;//同时下载的任务数
     private int multiThreadCount=5;//默认下载的多线程数
+    private int bufferedSize=10*1024;//写文件buff大小，该数值大小不能小于2048，数值变小，下载速度会变慢,默认10kB
     private int multiThreadMaxDownloadSize=5*1024*1024;//默认多线程下载的单线程最大下载文件块大小,默认5MB
     private int multiThreadMinDownloadSize=100*1024;//默认多线程下载的单线程最大下载文件块大小,默认100KB
     private boolean isUseMultiThread=true;//是否使用多线程下载
@@ -19,8 +20,9 @@ public class XConfig implements IConfig{
     private int updateSpeedTimes=1000;//更新速度的间隔
     private @IConfig.DefaultName
     int defaultName=IConfig.DefaultName.MD5;//默认起名名称
-    private boolean isWifiRequired=false;//是否仅在WiFi情况下下载
-    private int connectTimeOut=60*1000;//连接超时
+    private boolean permitAllSslCertificate=true;//是否允许所有的SSL证书运行,即可以下载所有的https的连接
+    private int connectTimeOut=30*1000;//连接超时单位为毫秒，默认30秒，该时间不能少于5秒
+    private int iOTimeOut=20*1000;//设置IO流读取时间，单位为毫秒，默认20秒，该时间不能少于5秒
 
     public XConfig(String cacheDir){
         this.cacheDir=cacheDir;
@@ -41,6 +43,12 @@ public class XConfig implements IConfig{
     @Override
     public XConfig userAgent(String userAgent){
         this.userAgent=userAgent;
+        return this;
+    }
+
+    @Override
+    public XConfig bufferedSize(int buffSize){
+        this.bufferedSize=buffSize;
         return this;
     }
 
@@ -117,14 +125,20 @@ public class XConfig implements IConfig{
     }
 
     @Override
-    public XConfig isWifiRequired(boolean isWifiRequired){
-        this.isWifiRequired=isWifiRequired;
+    public XConfig permitAllSslCertificate(boolean permitAllSslCertificate){
+        this.permitAllSslCertificate=permitAllSslCertificate;
         return this;
     }
 
     @Override
     public XConfig connectTimeOut(int connectTimeOut){
         this.connectTimeOut=connectTimeOut;
+        return this;
+    }
+
+    @Override
+    public IConfig iOTimeOut(int iOTimeOut){
+        this.iOTimeOut=iOTimeOut;
         return this;
     }
 
@@ -137,6 +151,10 @@ public class XConfig implements IConfig{
 
     public String getCacheDir(){
         return cacheDir;
+    }
+
+    public int getBufferedSize(){
+        return bufferedSize;
     }
 
     public int getSameTimeDownloadCount(){
@@ -183,12 +201,16 @@ public class XConfig implements IConfig{
         return updateProgressTimes;
     }
 
-    public boolean isWifiRequired(){
-        return isWifiRequired;
+    public boolean isPermitAllSslCertificate(){
+        return permitAllSslCertificate;
     }
 
     public int getConnectTimeOut(){
         return connectTimeOut;
+    }
+
+    public int getiOTimeOut(){
+        return iOTimeOut;
     }
 
     public boolean isIgnoredSpeed(){

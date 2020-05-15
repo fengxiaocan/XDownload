@@ -2,15 +2,14 @@ package com.xjava.down.made;
 
 import java.io.Serializable;
 
-public final class Block implements Serializable{
+public final class DownloaderBlock implements Serializable{
     private long contentLength;
     private long blockLength;
     private int threadCount = 1;
 
-    public Block(){
-    }
+    public DownloaderBlock(){}
 
-    public Block(long contentLength,long blockLength,int threadCount){
+    public DownloaderBlock(long contentLength,long blockLength,int threadCount){
         this.contentLength=contentLength;
         this.blockLength=blockLength;
         this.threadCount=threadCount;

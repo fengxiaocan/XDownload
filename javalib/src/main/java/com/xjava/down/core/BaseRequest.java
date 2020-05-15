@@ -4,22 +4,26 @@ import com.xjava.down.XDownload;
 import com.xjava.down.data.Headers;
 import com.xjava.down.data.Params;
 import com.xjava.down.dispatch.Schedulers;
+import com.xjava.down.listener.SSLCertificateFactory;
 import com.xjava.down.tool.XDownUtils;
 
 abstract class BaseRequest implements IConnect{
     protected String tag;//标记
 
+    protected String certificatePath;//https 证书地址
+    protected SSLCertificateFactory sslCertificateFactory;//https 证书创建器
     protected String baseUrl;//下载地址
     protected Headers headers;//头部信息
     protected Params params;//参数
     protected Schedulers schedulers;//调度器
     protected String userAgent=XDownload.get().config().getUserAgent();//默认UA
 
-    protected boolean isWifiRequired=XDownload.get().config().isWifiRequired();//是否仅在WiFi情况下下载
+    protected boolean permitAllSslCertificate=XDownload.get().config().isPermitAllSslCertificate();//是否仅在WiFi情况下下载
     protected boolean isUseAutoRetry=XDownload.get().config().isUseAutoRetry();//是否使用出错自动重试
     protected int autoRetryTimes=XDownload.get().config().getAutoRetryTimes();//自动重试次数
     protected int autoRetryInterval=XDownload.get().config().getAutoRetryInterval();//自动重试间隔
     protected int connectTimeOut=XDownload.get().config().getConnectTimeOut();//连接超时
+    protected int iOTimeOut=XDownload.get().config().getiOTimeOut();//连接超时
 
     protected volatile String connectUrl;//下载地址
     protected volatile String identifier;//下载标志
@@ -31,6 +35,18 @@ abstract class BaseRequest implements IConnect{
     @Override
     public IConnect setTag(String tag){
         this.tag=tag;
+        return this;
+    }
+
+    @Override
+    public IConnect setSSLCertificate(String path){
+        this.certificatePath=path;
+        return this;
+    }
+
+    @Override
+    public IConnect setSSLCertificateFactory(SSLCertificateFactory factory){
+        this.sslCertificateFactory=factory;
         return this;
     }
 
@@ -56,13 +72,13 @@ abstract class BaseRequest implements IConnect{
 
     @Override
     public IConnect setParams(Params params){
-        this.params = params;
+        this.params=params;
         return this;
     }
 
     @Override
     public IConnect setHeader(Headers header){
-        this.headers = header;
+        this.headers=header;
         return this;
     }
 
@@ -75,6 +91,12 @@ abstract class BaseRequest implements IConnect{
     @Override
     public IConnect setConnectTimeOut(int connectTimeOut){
         this.connectTimeOut=connectTimeOut;
+        return this;
+    }
+
+    @Override
+    public IConnect setIOTimeOut(int iOTimeOut){
+        this.iOTimeOut=iOTimeOut;
         return this;
     }
 
@@ -97,8 +119,8 @@ abstract class BaseRequest implements IConnect{
     }
 
     @Override
-    public IConnect setWifiRequired(boolean wifiRequired){
-        this.isWifiRequired=wifiRequired;
+    public IConnect permitAllSslCertificate(boolean permitAllSslCertificate){
+        this.permitAllSslCertificate=permitAllSslCertificate;
         return this;
     }
 
@@ -151,8 +173,8 @@ abstract class BaseRequest implements IConnect{
         return userAgent;
     }
 
-    public boolean isWifiRequired(){
-        return isWifiRequired;
+    public boolean isPermitAllSslCertificate(){
+        return permitAllSslCertificate;
     }
 
     public boolean isUseAutoRetry(){
@@ -171,4 +193,23 @@ abstract class BaseRequest implements IConnect{
         return connectTimeOut;
     }
 
+    public int getIOTimeOut(){
+        return iOTimeOut;
+    }
+
+    public String getCertificatePath(){
+        return certificatePath;
+    }
+
+    public String getBaseUrl(){
+        return baseUrl;
+    }
+
+    public Headers getHeaders(){
+        return headers;
+    }
+
+    public Params getParams(){
+        return params;
+    }
 }

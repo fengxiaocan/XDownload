@@ -7,6 +7,7 @@ import com.xjava.down.listener.OnDownloadConnectListener;
 import com.xjava.down.listener.OnDownloadListener;
 import com.xjava.down.listener.OnProgressListener;
 import com.xjava.down.listener.OnSpeedListener;
+import com.xjava.down.listener.SSLCertificateFactory;
 
 public interface HttpDownload extends IConnect{
 
@@ -23,6 +24,8 @@ public interface HttpDownload extends IConnect{
     HttpDownload setUpdateSpeedTimes(int updateSpeedTimes);
 
     HttpDownload setUseMultiThread(boolean useMultiThread);
+
+    HttpDownload setBufferedSize(int bufferedSize);
 
     HttpDownload setMultiThreadCount(int multiThreadCount);
 
@@ -46,6 +49,12 @@ public interface HttpDownload extends IConnect{
     HttpDownload setTag(String tag);
 
     @Override
+    HttpDownload setSSLCertificate(String path);
+
+    @Override
+    HttpDownload setSSLCertificateFactory(SSLCertificateFactory factory);
+
+    @Override
     HttpDownload addParams(String name,String value);
 
     @Override
@@ -64,6 +73,9 @@ public interface HttpDownload extends IConnect{
     HttpDownload setConnectTimeOut(int connectTimeOut);
 
     @Override
+    HttpDownload setIOTimeOut(int iOTimeOut);
+
+    @Override
     HttpDownload setUseAutoRetry(boolean useAutoRetry);
 
     @Override
@@ -73,7 +85,7 @@ public interface HttpDownload extends IConnect{
     HttpDownload setAutoRetryInterval(int autoRetryInterval);
 
     @Override
-    HttpDownload setWifiRequired(boolean wifiRequired);
+    HttpDownload permitAllSslCertificate(boolean wifiRequired);
 
     @Override
     HttpDownload scheduleOn(Schedulers schedulers);

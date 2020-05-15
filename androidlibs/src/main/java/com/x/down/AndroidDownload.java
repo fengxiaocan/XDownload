@@ -11,8 +11,12 @@ import com.xjava.down.core.HttpDownload;
 
 public final class AndroidDownload{
 
+    static{
+        XDownload.get().config().userAgent(getDefaultUserAgent());
+    }
+
     public static IConfig init(Context context){
-        XConfig config=new XConfig(context.getExternalCacheDir().getAbsolutePath()).userAgent(getDefaultUserAgent());
+        XConfig config=new XConfig(context.getExternalCacheDir().getAbsolutePath());
         XDownload.get().config(config);
         return config;
     }

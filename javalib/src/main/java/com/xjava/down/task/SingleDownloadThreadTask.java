@@ -9,6 +9,7 @@ import com.xjava.down.impl.DownloadListenerDisposer;
 import com.xjava.down.impl.ProgressDisposer;
 import com.xjava.down.impl.SpeedDisposer;
 import com.xjava.down.made.AutoRetryRecorder;
+import com.xjava.down.made.DownloaderMemory;
 import com.xjava.down.tool.XDownUtils;
 
 import java.io.File;
@@ -32,7 +33,7 @@ final class SingleDownloadThreadTask extends HttpDownloadRequest implements IDow
     public SingleDownloadThreadTask(XDownloadRequest request,DownloadListenerDisposer listener,long contentLength){
         super(new AutoRetryRecorder(request.isUseAutoRetry(),
                                     request.getAutoRetryTimes(),
-                                    request.getAutoRetryInterval()));
+                                    request.getAutoRetryInterval()),request.getBufferedSize());
         this.request=request;
         this.sContentLength=contentLength;
         this.listenerDisposer=listener;
@@ -76,99 +77,126 @@ final class SingleDownloadThreadTask extends HttpDownloadRequest implements IDow
     }
 
     @Override
+    protected void onConnecting(long length){
+        sContentLength=length;
+        listenerDisposer.onConnecting(this);
+    }
+
+    @Override
     protected void httpRequest() throws Exception{
         if(checkComplete()){
             return;
         }
-        HttpURLConnection http=request.buildConnect();
-
-        sContentLength=XDownUtils.getContentLength(http);
-        //连接中
-        listenerDisposer.onConnecting(this);
+        HttpURLConnection http=null;
 
         if(sContentLength<=0){
-            XDownUtils.disconnectHttp(http);
-            http=request.buildConnect();
-            //长度获取不到的时候重新连接 获取不到长度则要求http请求不要gzip压缩
-            http.setRequestProperty("Accept-Encoding","identity");
-            http.connect();
-            //重新获取长度
-            sContentLength=XDownUtils.getContentLength(http);
-            //连接中
-            listenerDisposer.onConnecting(this);
+            //获取之前的下载信息
+            DownloaderMemory info=XDownload.get().getMemoryHandler().queryDownloaderInfo(request);
+            if(info!=null){
+                sContentLength=info.getLength();
+            }
+
+            http=getDownloaderLong(request);
+
+            final int code=http.getResponseCode();
+            if(!isSuccess(code)){
+                //获取错误信息
+                String stream=readStringStream(http.getErrorStream());
+                listenerDisposer.onRequestError(this,code,stream);
+                //断开请求
+                XDownUtils.disconnectHttp(http);
+                //重试
+                retryToRun();
+                return;
+            }
+        }
+
+        final boolean isBreakPointResume;//是否断点续传
+
+        //判断之前下载的文件是否存在或完成
+        if(cacheFile.exists()){
+            if(sContentLength>0){
+                if(cacheFile.length()==sContentLength){
+                    //长度一致
+                    sSofarLength=sContentLength;
+                    //复制临时文件到保存文件中
+                    copyFile(cacheFile,XDownUtils.getSaveFile(request),true);
+                    //下载完成
+                    speedLength=0;
+                    listenerDisposer.onComplete(this);
+                    return;
+                } else if(cacheFile.length()>sContentLength){
+                    //长度大了
+                    cacheFile.delete();
+                    sSofarLength=0;
+                    isBreakPointResume=false;
+                } else{
+                    sSofarLength=cacheFile.length();
+                    isBreakPointResume=request.isUseBreakpointResume();
+                }
+            } else{
+                //获取不到文件长度
+                cacheFile.delete();
+                sSofarLength=0;
+                isBreakPointResume=false;
+            }
+        } else{
+            cacheFile.getParentFile().mkdirs();
+            sSofarLength=0;
+            isBreakPointResume=false;
+        }
+
+        if(isBreakPointResume){
+            if(sSofarLength>0){
+                XDownUtils.disconnectHttp(http);
+                http = null;
+            }
+            if(http==null){
+                http=request.buildConnect();
+                final long start=sSofarLength;
+                http.setRequestProperty("Range",XDownUtils.jsonString("bytes=",
+                                                                      start,"-",sContentLength));
+                //重新连接
+                http.connect();
+            }
+        }else {
+            if(http==null){
+                http=request.buildConnect();
+                http.connect();
+            }
         }
 
         int responseCode=http.getResponseCode();
 
-        if(isSuccess(responseCode)){
-            final boolean isBreakPointResume;//是否断点续传
-
-            if(cacheFile.exists()){
-                if(sContentLength>0){
-                    if(cacheFile.length()==sContentLength){
-                        sSofarLength=sContentLength;
-                        //复制临时文件到保存文件中
-                        copyFile(cacheFile,XDownUtils.getSaveFile(request),true);
-                        //下载完成
-                        speedLength=0;
-                        listenerDisposer.onComplete(this);
-                        return;
-                    } else if(cacheFile.length()>sContentLength){
-                        cacheFile.delete();
-                        sSofarLength=0;
-                        isBreakPointResume=false;
-                    } else{
-                        sSofarLength=cacheFile.length();
-                        isBreakPointResume=request.isUseBreakpointResume();
-                    }
-                } else{
-                    cacheFile.delete();
-                    sSofarLength=0;
-                    isBreakPointResume=false;
-                }
-            } else{
-                cacheFile.getParentFile().mkdirs();
-                sSofarLength=0;
-                isBreakPointResume=false;
-            }
-            if(isBreakPointResume){
-                XDownUtils.disconnectHttp(http);
-                http=request.buildConnect();
-
-                long start=cacheFile.length();
-                http.setRequestProperty("Range","bytes="+start+"-"+sContentLength);
-                //重新连接
-                http.connect();
-
-                responseCode=http.getResponseCode();
-                //重新判断
-                if(!isSuccess(responseCode)){
-                    onResponseError(http,responseCode);
-                    return;
-                }
-            }
-
-            //重新下载
-            if(!downReadInput(http,isBreakPointResume)){
-                return;
-            }
-            //复制下载完成的文件
-            copyFile(cacheFile,XDownUtils.getSaveFile(request),true);
-
-            //处理最后的进度
-            if(!progressDisposer.isIgnoredProgress()){
-                listenerDisposer.onProgress(this,1);
-            }
-            //处理最后的速度
-            if(!speedDisposer.isIgnoredSpeed()){
-                speedDisposer.onSpeed(this,speedLength);
-            }
-            speedLength=0;
-            //完成回调
-            listenerDisposer.onComplete(this);
-        } else{
-            onResponseError(http,responseCode);
+        if(isNeedRedirects(responseCode)){
+            http = redirectsConnect(http,request);
         }
+        responseCode=http.getResponseCode();
+
+        //重新判断
+        if(!isSuccess(responseCode)){
+            onResponseError(http,responseCode);
+            return;
+        }
+
+        //重新下载
+        if(!downReadInput(http,isBreakPointResume)){
+            return;
+        }
+        //复制下载完成的文件
+        copyFile(cacheFile,XDownUtils.getSaveFile(request),true);
+
+        //处理最后的进度
+        if(!progressDisposer.isIgnoredProgress()){
+            listenerDisposer.onProgress(this,1);
+        }
+        //处理最后的速度
+        if(!speedDisposer.isIgnoredSpeed()){
+            speedDisposer.onSpeed(this,speedLength);
+        }
+        speedLength=0;
+        //完成回调
+        listenerDisposer.onComplete(this);
     }
 
     private boolean downReadInput(HttpURLConnection http,boolean append) throws IOException{

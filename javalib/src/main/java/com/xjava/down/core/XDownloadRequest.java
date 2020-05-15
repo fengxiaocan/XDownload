@@ -8,6 +8,7 @@ import com.xjava.down.listener.OnDownloadConnectListener;
 import com.xjava.down.listener.OnDownloadListener;
 import com.xjava.down.listener.OnProgressListener;
 import com.xjava.down.listener.OnSpeedListener;
+import com.xjava.down.listener.SSLCertificateFactory;
 import com.xjava.down.task.ThreadTaskFactory;
 import com.xjava.down.tool.XDownUtils;
 
@@ -15,9 +16,16 @@ import java.io.File;
 import java.net.HttpURLConnection;
 import java.net.URL;
 
-public class XDownloadRequest extends BaseRequest implements HttpDownload{
+import javax.net.ssl.HttpsURLConnection;
+import javax.net.ssl.SSLSocketFactory;
+
+public class XDownloadRequest extends BaseRequest implements HttpDownload,BuilderURLConnection{
+    //文件保存位置
     protected String saveFile;//文件保存位置
-    protected String cacheDir=XDownload.get().config().getCacheDir();//默认UA
+    //文件缓存目录
+    protected String cacheDir=XDownload.get().config().getCacheDir();
+    //写文件buff大小，该数值大小不能小于2048，数值变小，下载速度会变慢,默认8kB
+    protected int bufferedSize=XDownload.get().config().getBufferedSize();
     //默认下载的多线程数
     protected int multiThreadCount=XDownload.get().config().getMultiThreadCount();
     //默认多线程下载的单线程最大下载文件块大小,默认10MB
@@ -36,9 +44,13 @@ public class XDownloadRequest extends BaseRequest implements HttpDownload{
     protected int updateProgressTimes=XDownload.get().config().getUpdateProgressTimes();
     //更新下载速度的间隔
     protected int updateSpeedTimes=XDownload.get().config().getUpdateSpeedTimes();
+    //下载完成失败监听
     protected OnDownloadListener onDownloadListener;
+    //下载过程连接监听
     protected OnDownloadConnectListener onDownloadConnectListener;
+    //下载进度监听
     protected OnProgressListener onProgressListener;
+    //下载速度监听
     protected OnSpeedListener onSpeedListener;
 
     public static XDownloadRequest with(String url){
@@ -59,6 +71,7 @@ public class XDownloadRequest extends BaseRequest implements HttpDownload{
         }
         return cacheDir;
     }
+
 
     @Override
     public HttpDownload setCacheDir(String cacheDir){
@@ -94,6 +107,12 @@ public class XDownloadRequest extends BaseRequest implements HttpDownload{
     @Override
     public HttpDownload setUseMultiThread(boolean useMultiThread){
         this.isUseMultiThread=useMultiThread;
+        return this;
+    }
+
+    @Override
+    public HttpDownload setBufferedSize(int bufferedSize){
+        this.bufferedSize=bufferedSize;
         return this;
     }
 
@@ -135,13 +154,13 @@ public class XDownloadRequest extends BaseRequest implements HttpDownload{
 
     @Override
     public HttpDownload setOnProgressListener(OnProgressListener listener){
-        onProgressListener = listener;
+        onProgressListener=listener;
         return this;
     }
 
     @Override
     public HttpDownload setOnSpeedListener(OnSpeedListener listener){
-        onSpeedListener = listener;
+        onSpeedListener=listener;
         return this;
     }
 
@@ -165,6 +184,16 @@ public class XDownloadRequest extends BaseRequest implements HttpDownload{
     @Override
     public HttpDownload setTag(String tag){
         return (HttpDownload)super.setTag(tag);
+    }
+
+    @Override
+    public HttpDownload setSSLCertificate(String path){
+        return (HttpDownload)super.setSSLCertificate(path);
+    }
+
+    @Override
+    public HttpDownload setSSLCertificateFactory(SSLCertificateFactory factory){
+        return (HttpDownload)super.setSSLCertificateFactory(factory);
     }
 
     @Override
@@ -204,6 +233,11 @@ public class XDownloadRequest extends BaseRequest implements HttpDownload{
     }
 
     @Override
+    public HttpDownload setIOTimeOut(int iOTimeOut){
+        return (HttpDownload)super.setIOTimeOut(iOTimeOut);
+    }
+
+    @Override
     public HttpDownload setUseAutoRetry(boolean useAutoRetry){
         return (HttpDownload)super.setUseAutoRetry(useAutoRetry);
     }
@@ -219,13 +253,17 @@ public class XDownloadRequest extends BaseRequest implements HttpDownload{
     }
 
     @Override
-    public HttpDownload setWifiRequired(boolean wifiRequired){
-        return (HttpDownload)super.setWifiRequired(wifiRequired);
+    public HttpDownload permitAllSslCertificate(boolean wifiRequired){
+        return (HttpDownload)super.permitAllSslCertificate(wifiRequired);
     }
 
     @Override
     public HttpDownload scheduleOn(Schedulers schedulers){
         return (HttpDownload)super.scheduleOn(schedulers);
+    }
+
+    public int getBufferedSize(){
+        return bufferedSize;
     }
 
     public int getMultiThreadCount(){
@@ -290,9 +328,28 @@ public class XDownloadRequest extends BaseRequest implements HttpDownload{
         return getTag();
     }
 
-    public HttpURLConnection buildConnect() throws Exception{
-        URL url=new URL(getConnectUrl());
+    @Override
+    public HttpURLConnection buildConnect(String connectUrl) throws Exception{
+        URL url=new URL(connectUrl);
         HttpURLConnection http=(HttpURLConnection)url.openConnection();
+
+        if(http instanceof HttpsURLConnection){
+            HttpsURLConnection https=(HttpsURLConnection)http;
+            //处理https证书
+            SSLSocketFactory certificate=null;
+            if(sslCertificateFactory!=null){
+                certificate=sslCertificateFactory.createCertificate();
+            } else if(certificatePath!=null){
+                certificate=XDownUtils.getCertificate(certificatePath);
+            } else if(permitAllSslCertificate){
+                //允许所有的https证书
+                certificate=XDownUtils.getUnSafeCertificate();
+            }
+            if(certificate!=null){
+                https.setSSLSocketFactory(certificate);
+            }
+        }
+
         http.setRequestMethod("GET");
         //设置http请求头
         http.setRequestProperty("Connection","Keep-Alive");
@@ -304,12 +361,19 @@ public class XDownloadRequest extends BaseRequest implements HttpDownload{
         if(userAgent!=null){
             http.setRequestProperty("User-Agent",userAgent);
         }
-        if(connectTimeOut>0){
-            http.setConnectTimeout(connectTimeOut);
-            http.setReadTimeout(connectTimeOut);
-        }
+
+        http.setConnectTimeout(Math.max(connectTimeOut,5*1000));
+        http.setReadTimeout(Math.max(iOTimeOut,5*1000));
+
+        //本次链接自动处理重定向
+        http.setInstanceFollowRedirects(true);
+
         http.setUseCaches(false);
         http.setDoInput(true);
         return http;
+    }
+
+    public HttpURLConnection buildConnect() throws Exception{
+        return buildConnect(getConnectUrl());
     }
 }

@@ -6,12 +6,17 @@ import com.xjava.down.data.Params;
 import com.xjava.down.dispatch.Schedulers;
 import com.xjava.down.listener.OnConnectListener;
 import com.xjava.down.listener.OnResponseListener;
+import com.xjava.down.listener.SSLCertificateFactory;
 import com.xjava.down.task.ThreadTaskFactory;
+import com.xjava.down.tool.XDownUtils;
 
 import java.net.HttpURLConnection;
 import java.net.URL;
 
-public class XHttpRequest extends BaseRequest implements HttpConnect{
+import javax.net.ssl.HttpsURLConnection;
+import javax.net.ssl.SSLSocketFactory;
+
+public class XHttpRequest extends BaseRequest implements HttpConnect,BuilderURLConnection{
     protected Mothod mothod=Mothod.GET;//请求方法
     protected RequestBody requestBody;//请求体,只有POST方法才有
     protected boolean useCaches=false;//是否使用缓存
@@ -93,6 +98,16 @@ public class XHttpRequest extends BaseRequest implements HttpConnect{
     }
 
     @Override
+    public HttpConnect setSSLCertificate(String path){
+        return (HttpConnect)super.setSSLCertificate(path);
+    }
+
+    @Override
+    public HttpConnect setSSLCertificateFactory(SSLCertificateFactory factory){
+        return (HttpConnect)super.setSSLCertificateFactory(factory);
+    }
+
+    @Override
     public HttpConnect addParams(String name,String value){
         return (HttpConnect)super.addParams(name,value);
     }
@@ -123,6 +138,11 @@ public class XHttpRequest extends BaseRequest implements HttpConnect{
     }
 
     @Override
+    public HttpConnect setIOTimeOut(int iOTimeOut){
+        return (HttpConnect)super.setIOTimeOut(iOTimeOut);
+    }
+
+    @Override
     public HttpConnect setUseAutoRetry(boolean useAutoRetry){
         return (HttpConnect)super.setUseAutoRetry(useAutoRetry);
     }
@@ -138,8 +158,8 @@ public class XHttpRequest extends BaseRequest implements HttpConnect{
     }
 
     @Override
-    public HttpConnect setWifiRequired(boolean wifiRequired){
-        return (HttpConnect)super.setWifiRequired(wifiRequired);
+    public HttpConnect permitAllSslCertificate(boolean wifiRequired){
+        return (HttpConnect)super.permitAllSslCertificate(wifiRequired);
     }
 
     @Override
@@ -153,9 +173,28 @@ public class XHttpRequest extends BaseRequest implements HttpConnect{
         return getTag();
     }
 
-    public HttpURLConnection buildConnect() throws Exception{
-        URL url=new URL(getConnectUrl());
+    @Override
+    public HttpURLConnection buildConnect(String connectUrl) throws Exception{
+        URL url=new URL(connectUrl);
         HttpURLConnection http=(HttpURLConnection)url.openConnection();
+
+        if(http instanceof HttpsURLConnection){
+            HttpsURLConnection https=(HttpsURLConnection)http;
+            //处理https证书
+            SSLSocketFactory certificate=null;
+            if(sslCertificateFactory!=null){
+                certificate=sslCertificateFactory.createCertificate();
+            } else if(certificatePath!=null){
+                certificate=XDownUtils.getCertificate(certificatePath);
+            } else if(permitAllSslCertificate){
+                //允许所有的https证书
+                certificate=XDownUtils.getUnSafeCertificate();
+            }
+            if(certificate!=null){
+                https.setSSLSocketFactory(certificate);
+            }
+        }
+
         http.setRequestMethod(mothod.getMothod());
         //设置http请求头
         http.setRequestProperty("Connection","Keep-Alive");
@@ -167,13 +206,19 @@ public class XHttpRequest extends BaseRequest implements HttpConnect{
         if(userAgent!=null){
             http.setRequestProperty("User-Agent",userAgent);
         }
-        if(connectTimeOut>0){
-            http.setConnectTimeout(connectTimeOut);
-            http.setReadTimeout(connectTimeOut);
-        }
+        http.setConnectTimeout(Math.max(connectTimeOut,5*1000));
+        http.setReadTimeout(Math.max(iOTimeOut,5*1000));
+        //本次链接是否处理重定向
+        http.setInstanceFollowRedirects(false);
+
         http.setUseCaches(useCaches);
         http.setDoInput(true);
         http.setDoOutput(mothod==Mothod.POST);
         return http;
+    }
+
+    @Override
+    public HttpURLConnection buildConnect() throws Exception{
+        return buildConnect(getConnectUrl());
     }
 }

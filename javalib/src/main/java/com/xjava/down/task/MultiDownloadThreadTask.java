@@ -35,7 +35,7 @@ final class MultiDownloadThreadTask extends HttpDownloadRequest implements Multi
             long blockEnd,
             MultiDisposer listener)
     {
-        super(recorder);
+        super(recorder,request.getBufferedSize());
         this.request=request;
         this.tempFile=tempFile;
         this.index=index;
@@ -78,12 +78,18 @@ final class MultiDownloadThreadTask extends HttpDownloadRequest implements Multi
         }
 
         HttpURLConnection http=request.buildConnect();
-        http.setRequestProperty("Range","bytes="+start+"-"+blockEnd);
+        http.setRequestProperty("Range",XDownUtils.jsonString("bytes=",start,"-",blockEnd));
         http.connect();
 
         multiDisposer.onConnecting(this);
 
         int responseCode=http.getResponseCode();
+
+        if(isNeedRedirects(responseCode)){
+            http = redirectsConnect(http,request);
+        }
+        responseCode=http.getResponseCode();
+
         if(isSuccess(responseCode)){
             FileOutputStream os=new FileOutputStream(tempFile,true);
             if(!readInputStream(http.getInputStream(),os)){

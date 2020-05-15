@@ -121,16 +121,12 @@ public class MultiDisposer implements OnDownloadConnectListener{
                 byte[] bytes=new byte[1024*8];
                 FileOutputStream outputStream=null;
                 try{
-                    File cacheDir=null;
                     outputStream=new FileOutputStream(file);
                     for(int i=0;i<blockCount;i++){
                         FileInputStream inputStream=null;
                         try{
                             File tempFile=taskMaps.get(i).blockFile();
                             inputStream=new FileInputStream(tempFile);
-                            if(cacheDir==null){
-                                cacheDir=tempFile.getParentFile();
-                            }
                             int length;
                             while((length=inputStream.read(bytes))>0){
                                 outputStream.write(bytes,0,length);
@@ -140,7 +136,6 @@ public class MultiDisposer implements OnDownloadConnectListener{
                             XDownUtils.closeIo(inputStream);
                         }
                     }
-                    XDownUtils.delectDir(cacheDir);
 
                     listenerDisposer.onComplete(task);
 

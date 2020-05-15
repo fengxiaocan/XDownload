@@ -6,6 +6,8 @@ import com.xjava.down.core.HttpConnect;
 import com.xjava.down.core.HttpDownload;
 import com.xjava.down.core.XDownloadRequest;
 import com.xjava.down.core.XHttpRequest;
+import com.xjava.down.impl.OnJavaMemoryHandler;
+import com.xjava.down.listener.OnDownloaderMemoryHandler;
 
 import java.io.File;
 import java.util.ArrayList;
@@ -17,6 +19,7 @@ public final class XDownload{
 
     private static XDownload xDownload;
     private XConfig setting;
+    private OnDownloaderMemoryHandler memoryHandler;
     private Map<String,IConnectRequest> connectMap=new HashMap<>();
     private Map<String,List<IConnectRequest>> downloadMap=new HashMap<>();
     private int maxThreadCount=30;//最大允许的多线程
@@ -48,7 +51,7 @@ public final class XDownload{
     public synchronized XConfig config(){
         if(setting==null){
             String cachePath=new File(System.getProperty("user.dir"),"xDownload").getAbsolutePath();
-            setting= new XConfig(cachePath);
+            setting=new XConfig(cachePath);
         }
         return setting;
     }
@@ -110,6 +113,19 @@ public final class XDownload{
             return isCancel;
         }
         return false;
+    }
+
+    public OnDownloaderMemoryHandler getMemoryHandler(){
+        synchronized(Object.class){
+            if(memoryHandler==null){
+                memoryHandler=new OnJavaMemoryHandler();
+            }
+        }
+        return memoryHandler;
+    }
+
+    public void setMemoryHandler(OnDownloaderMemoryHandler memoryHandler){
+        this.memoryHandler=memoryHandler;
     }
 
     public static HttpConnect request(String baseUrl){

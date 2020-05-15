@@ -83,7 +83,6 @@ public interface RequestBody{
 
             @Override
             public void writeTo(IoSink buffer) throws IOException{
-//                System.out.println(content);
                 buffer.writeUtf8(content);
             }
         }

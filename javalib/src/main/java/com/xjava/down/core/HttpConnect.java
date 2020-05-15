@@ -6,11 +6,18 @@ import com.xjava.down.data.Params;
 import com.xjava.down.dispatch.Schedulers;
 import com.xjava.down.listener.OnConnectListener;
 import com.xjava.down.listener.OnResponseListener;
+import com.xjava.down.listener.SSLCertificateFactory;
 
 public interface HttpConnect extends IConnect{
 
     @Override
     HttpConnect setTag(String tag);
+
+    @Override
+    HttpConnect setSSLCertificate(String path);
+
+    @Override
+    HttpConnect setSSLCertificateFactory(SSLCertificateFactory factory);
 
     @Override
     HttpConnect addParams(String name,String value);
@@ -31,6 +38,9 @@ public interface HttpConnect extends IConnect{
     HttpConnect setConnectTimeOut(int connectTimeOut);
 
     @Override
+    HttpConnect setIOTimeOut(int iOTimeOut);
+
+    @Override
     HttpConnect setUseAutoRetry(boolean useAutoRetry);
 
     @Override
@@ -40,7 +50,7 @@ public interface HttpConnect extends IConnect{
     HttpConnect setAutoRetryInterval(int autoRetryInterval);
 
     @Override
-    HttpConnect setWifiRequired(boolean wifiRequired);
+    HttpConnect permitAllSslCertificate(boolean wifiRequired);
 
     @Override
     HttpConnect scheduleOn(Schedulers schedulers);

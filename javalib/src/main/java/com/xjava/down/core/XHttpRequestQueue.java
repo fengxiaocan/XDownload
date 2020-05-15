@@ -21,7 +21,7 @@ public final class XHttpRequestQueue extends XHttpRequest{
             request.params=params;
             request.schedulers=schedulers;
             request.userAgent=userAgent;
-            request.isWifiRequired=isWifiRequired;
+            request.permitAllSslCertificate=permitAllSslCertificate;
             request.isUseAutoRetry=isUseAutoRetry;
             request.autoRetryTimes=autoRetryTimes;
             request.autoRetryInterval=autoRetryInterval;

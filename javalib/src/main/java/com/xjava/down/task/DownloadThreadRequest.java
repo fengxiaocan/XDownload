@@ -13,7 +13,8 @@ import com.xjava.down.listener.OnDownloadListener;
 import com.xjava.down.listener.OnProgressListener;
 import com.xjava.down.listener.OnSpeedListener;
 import com.xjava.down.made.AutoRetryRecorder;
-import com.xjava.down.made.Block;
+import com.xjava.down.made.DownloaderBlock;
+import com.xjava.down.made.DownloaderMemory;
 import com.xjava.down.tool.XDownUtils;
 
 import java.io.File;
@@ -21,8 +22,7 @@ import java.net.HttpURLConnection;
 import java.util.concurrent.Future;
 import java.util.concurrent.ThreadPoolExecutor;
 
-final class DownloadThreadRequest extends BaseHttpRequest implements IDownloadRequest, IConnectRequest{
-    private static final String BLOCK_FILE_NAME="block";
+final class DownloadThreadRequest extends HttpDownloadRequest implements IDownloadRequest, IConnectRequest{
 
     protected ThreadPoolExecutor threadPoolExecutor;
     protected final XDownloadRequest httpRequest;
@@ -39,7 +39,7 @@ final class DownloadThreadRequest extends BaseHttpRequest implements IDownloadRe
     {
         super(new AutoRetryRecorder(request.isUseAutoRetry(),
                                     request.getAutoRetryTimes(),
-                                    request.getAutoRetryInterval()));
+                                    request.getAutoRetryInterval()),request.getBufferedSize());
         this.httpRequest=request;
         this.listenerDisposer=new DownloadListenerDisposer(request.getSchedulers(),
                                                            onConnectListeners,
@@ -53,62 +53,63 @@ final class DownloadThreadRequest extends BaseHttpRequest implements IDownloadRe
     }
 
     @Override
-    protected void httpRequest() throws Exception{
-        HttpURLConnection http=httpRequest.buildConnect();
-        //优先获取文件长度再回调
-        sContentLength=XDownUtils.getContentLength(http);
-        //连接中
+    protected void onConnecting(long length){
+        sContentLength=length;
         listenerDisposer.onConnecting(this);
+    }
 
+    @Override
+    protected void httpRequest() throws Exception{
+        //获取之前的下载信息
+        DownloaderMemory info=XDownload.get().getMemoryHandler().queryDownloaderInfo(httpRequest);
+        if(info!=null){
+            sContentLength=info.getLength();
+        }
+        //判断一下文件的长度是否获取得到
         if(sContentLength<=0){
-            //长度获取不到的时候重新连接 获取不到长度则要求http请求不要gzip压缩
-            XDownUtils.disconnectHttp(http);
-            http=httpRequest.buildConnect();
-            http.setRequestProperty("Accept-Encoding","identity");
-            http.connect();
-            sContentLength=XDownUtils.getContentLength(http);
-            //连接中
-            listenerDisposer.onConnecting(this);
+            HttpURLConnection http=getDownloaderLong(httpRequest);
+
+            final int code=http.getResponseCode();
+            if(!isSuccess(code)){
+                //获取错误信息
+                String stream=readStringStream(http.getErrorStream());
+                listenerDisposer.onRequestError(this,code,stream);
+                //断开请求
+                XDownUtils.disconnectHttp(http);
+                //重试
+                retryToRun();
+                return;
+            } else{
+                //先断开请求
+                XDownUtils.disconnectHttp(http);
+            }
         }
 
-        int code=http.getResponseCode();
-
-        if(!isSuccess(code)){
-            //获取错误信息
-            String stream=readStringStream(http.getErrorStream());
-            listenerDisposer.onRequestError(this,code,stream);
-            //断开请求
-            XDownUtils.disconnectHttp(http);
-            //重试
-            retryToRun();
-        } else{
-            //先断开请求
-            XDownUtils.disconnectHttp(http);
-
-            if(sContentLength>0){
-                File file=XDownUtils.getSaveFile(httpRequest);
-                if(file.exists()){
-                    if(file.length()==sContentLength){
-                        listenerDisposer.onComplete(this);
-                        return;
-                    } else{
-                        file.delete();
-                    }
+        //判断之前有没有下载完成文件
+        if(sContentLength>0){
+            File file=XDownUtils.getSaveFile(httpRequest);
+            if(file.exists()){
+                if(file.length()==sContentLength){
+                    listenerDisposer.onComplete(this);
+                    return;
+                } else{
+                    file.delete();
                 }
             }
+        }
 
-            if(sContentLength>0&&httpRequest.isUseMultiThread()){
-                multiThreadRun(sContentLength);
-            } else{
-                //独立下载
-                SingleDownloadThreadTask threadTask=new SingleDownloadThreadTask(httpRequest,
-                                                                                 listenerDisposer,
-                                                                                 sContentLength);
-                if(!threadTask.checkComplete()){
-                    Future<?> future=ExecutorGather.executorQueue().submit(threadTask);
-                    threadTask.setTaskFuture(future);
-                    XDownload.get().addDownload(httpRequest.getTag(),threadTask);
-                }
+        //判断执行多线程下载还是单线程下载
+        if(sContentLength>0&&httpRequest.isUseMultiThread()){
+            multiThreadRun(sContentLength);
+        } else{
+            //独立下载
+            SingleDownloadThreadTask threadTask=new SingleDownloadThreadTask(httpRequest,
+                                                                             listenerDisposer,
+                                                                             sContentLength);
+            if(!threadTask.checkComplete()){
+                Future<?> future=ExecutorGather.executorQueue().submit(threadTask);
+                threadTask.setTaskFuture(future);
+                XDownload.get().addDownload(httpRequest.getTag(),threadTask);
             }
         }
     }
@@ -151,7 +152,7 @@ final class DownloadThreadRequest extends BaseHttpRequest implements IDownloadRe
         //获取上次配置,决定断点下载不出错
         File cacheDir=XDownUtils.getTempCacheDir(httpRequest);
 
-        File blockFile=new File(cacheDir,BLOCK_FILE_NAME);
+
         //是否需要删除之前的临时文件
         final boolean isDelectTemp=!httpRequest.isUseBreakpointResume();
         if(isDelectTemp){
@@ -159,21 +160,17 @@ final class DownloadThreadRequest extends BaseHttpRequest implements IDownloadRe
             XDownUtils.delectDir(cacheDir);
         }
 
-        //每一块的长度
-        final long blockLength;
-        //需要的执行任务数量
-        final int threadCount;
-        Block block;
-        if(blockFile.exists()){
-            block=XDownUtils.readObject(blockFile);
-            if(block==null){
-                block=createBlock(blockFile,contentLength);
-            }
-        } else{
-            block=createBlock(blockFile,contentLength);
+        DownloaderBlock block=XDownload.get().getMemoryHandler().queryDownloaderBlock(httpRequest);
+
+        if(block==null){
+            block=createBlock(contentLength);
+            XDownload.get().getMemoryHandler().saveDownloaderBlock(httpRequest,block);
         }
-        blockLength=block.getBlockLength();
-        threadCount=block.getThreadCount();
+
+        //每一块的长度
+        final long  blockLength=block.getBlockLength();
+        //需要的执行任务数量
+        final int threadCount=block.getThreadCount();
 
         threadPoolExecutor=ExecutorGather.newSubtaskQueue(httpRequest.getMultiThreadCount());
 
@@ -218,11 +215,10 @@ final class DownloadThreadRequest extends BaseHttpRequest implements IDownloadRe
     /**
      * 创建块
      *
-     * @param blockFile
      * @param contentLength
      * @return
      */
-    protected Block createBlock(File blockFile,final long contentLength){
+    protected DownloaderBlock createBlock(final long contentLength){
         final long blockLength;
         //使用的线程数
         final int threadCount;
@@ -247,9 +243,7 @@ final class DownloadThreadRequest extends BaseHttpRequest implements IDownloadRe
             blockLength=contentLength/configThreadCount;
             threadCount=configThreadCount;
         }
-        Block block=new Block(contentLength,blockLength,threadCount);
-        XDownUtils.writeObject(blockFile,block);
-        return block;
+        return new DownloaderBlock(contentLength,blockLength,threadCount);
     }
 
     @Override
