@@ -10,7 +10,8 @@ import com.xjava.down.listener.OnResponseListener;
 
 public class Test{
     public static void main(String[] args){
-//        XDownload.download("http://down.dgtle.com/app/dgtle3.9/dgtle_v3.9.2.apk")
+//        XDownload.download("https://135zyv5.xw0371.com/2018/10/29/X05c7CG3VB91gi1M/playlist.m3u8")
+//        XDownload.download("http://youku.cdn-iqiyi.com/20180523/11112_b1fb9d8b/index.m3u8")
 //                 .setUseMultiThread(false)
 //                 .setConnectListener(new OnDownloadConnectListener(){
 //                     @Override

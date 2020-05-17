@@ -36,8 +36,10 @@ abstract class HttpDownloadRequest extends BaseHttpRequest{
     protected HttpURLConnection getDownloaderLong(XDownloadRequest request) throws Exception{
         HttpURLConnection http=request.buildConnect();
         int responseCode=http.getResponseCode();
-        if(isNeedRedirects(responseCode)){
+
+        while (isNeedRedirects(responseCode)){
             http = redirectsConnect(http,request);
+            responseCode=http.getResponseCode();
         }
         //优先获取文件长度再回调
         long contentLength=XDownUtils.getContentLength(http);

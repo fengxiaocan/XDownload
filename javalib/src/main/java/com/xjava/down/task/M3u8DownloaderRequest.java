@@ -75,15 +75,15 @@ final class M3u8DownloaderRequest extends HttpDownloadRequest implements IDownlo
             if(info.getResponse() == null){
                 HttpURLConnection http=httpRequest.buildConnect();
                 int responseCode=http.getResponseCode();
-                if(isNeedRedirects(responseCode)){
-                    http=redirectsConnect(http,httpRequest);
-                }
 
-                responseCode=http.getResponseCode();
+                while (isNeedRedirects(responseCode)){
+                    http=redirectsConnect(http,httpRequest);
+                    responseCode=http.getResponseCode();
+                }
 
                 if(!isSuccess(responseCode)){
                     //获取错误信息
-                    String stream=readStringStream(http.getErrorStream());
+                    String stream=readStringStream(http.getErrorStream(),XDownUtils.getInputCharset(http));
                     listenerDisposer.onRequestError(this,responseCode,stream);
                     //断开请求
                     XDownUtils.disconnectHttp(http);
@@ -92,7 +92,7 @@ final class M3u8DownloaderRequest extends HttpDownloadRequest implements IDownlo
                     return;
                 }
 
-                String response=readStringStream(http.getInputStream());
+                String response=readStringStream(http.getInputStream(),XDownUtils.getInputCharset(http));
                 info.setResponse(response);
                 //断开连接
                 XDownUtils.disconnectHttp(http);

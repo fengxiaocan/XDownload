@@ -44,9 +44,11 @@ Java中使用方法:
                 .multiThreadMinSize(100*1024)//默认多线程下载的单线程最大下载文件块大小,默认100KB
                 .updateProgressTimes(1000)//更新进度条的间隔
                 .updateSpeedTimes(1000)//更新下载速度的间隔
-                .isWifiRequired(false)//是否仅在WiFi情况下下载,暂不可用
+                .bufferedSize(1024*8)//写文件buff大小，该数值大小不能小于2048，数值变小，下载速度会变慢,默认10kB
                 .ignoredSpeed(false)//是否忽略下载的速度回调
                 .ignoredProgress(false)//是否忽略下载的progress回调
+                .iOTimeOut(50000)//设置IO流读取时间，单位为毫秒，默认20秒，该时间不能少于5秒
+                .permitAllSslCertificate(false)//是否允许所有的SSL证书运行,即可以下载所有的https的连接,不允许可以自行设置下载的ce证书
                 .build());
 		
 	//发起请求
@@ -62,6 +64,9 @@ Java中使用方法:
                .addParams(参数名,参数值)//在URL后面添加参数
                .addHeader(请求头名,请求头值)//添加请求头
                .setUserAgent(ua)//UA
+               .setSSLCertificate(path)//https证书
+               .setSSLCertificateFactory(factory)//https 证书创建器,优先级高于路径设置,设置后证书路径无效
+               .permitAllSslCertificate(false)//是否允许所有的SSL证书运行,即可以下载所有的https的连接,优先级最低
                .scheduleOn(Schedulers)//需要异步回调的在这里处理,实现Schedulers
                .start();
 	       

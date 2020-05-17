@@ -194,10 +194,10 @@ abstract class BaseHttpRequest implements Runnable{
         return headers;
     }
 
-    protected String readStringStream(InputStream is) throws IOException{
+    protected String readStringStream(InputStream is,String charset) throws IOException{
         BufferedReader reader=null;
         try{
-            reader=new BufferedReader(new InputStreamReader(is));
+            reader=new BufferedReader(new InputStreamReader(is,charset));
 
             StringBuilder builder=new StringBuilder();
             String temp;

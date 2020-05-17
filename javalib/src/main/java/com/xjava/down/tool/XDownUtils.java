@@ -91,6 +91,22 @@ public class XDownUtils{
         }
     }
 
+    public static String getInputCharset(HttpURLConnection connection){
+        if (connection != null) {
+            String type = connection.getHeaderField("Content-Type");
+            if (type != null){
+                if (type.contains("charset=")) {
+                    String substring = type.substring(type.indexOf("charset=")+"charset=".length());
+                    int i = substring.indexOf(";");
+                    if (i>0){
+                        substring = substring.substring(0,i);
+                    }
+                    return substring;
+                }
+            }
+        }
+        return "utf-8";
+    }
 
     public static void disconnectHttp(HttpURLConnection connection){
         if(connection!=null){

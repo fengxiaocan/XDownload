@@ -85,10 +85,10 @@ final class MultiDownloadThreadTask extends HttpDownloadRequest implements Multi
 
         int responseCode=http.getResponseCode();
 
-        if(isNeedRedirects(responseCode)){
+        while (isNeedRedirects(responseCode)){
             http = redirectsConnect(http,request);
+            responseCode=http.getResponseCode();
         }
-        responseCode=http.getResponseCode();
 
         if(isSuccess(responseCode)){
             FileOutputStream os=new FileOutputStream(tempFile,true);
@@ -99,7 +99,7 @@ final class MultiDownloadThreadTask extends HttpDownloadRequest implements Multi
 
             XDownUtils.disconnectHttp(http);
         } else{
-            String stream=readStringStream(http.getErrorStream());
+            String stream=readStringStream(http.getErrorStream(),XDownUtils.getInputCharset(http));
             multiDisposer.onRequestError(this,responseCode,stream);
 
             XDownUtils.disconnectHttp(http);

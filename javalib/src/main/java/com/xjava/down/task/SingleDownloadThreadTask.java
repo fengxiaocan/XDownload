@@ -101,7 +101,7 @@ final class SingleDownloadThreadTask extends HttpDownloadRequest implements IDow
             final int code=http.getResponseCode();
             if(!isSuccess(code)){
                 //获取错误信息
-                String stream=readStringStream(http.getErrorStream());
+                String stream=readStringStream(http.getErrorStream(),XDownUtils.getInputCharset(http));
                 listenerDisposer.onRequestError(this,code,stream);
                 //断开请求
                 XDownUtils.disconnectHttp(http);
@@ -168,10 +168,10 @@ final class SingleDownloadThreadTask extends HttpDownloadRequest implements IDow
 
         int responseCode=http.getResponseCode();
 
-        if(isNeedRedirects(responseCode)){
+        while (isNeedRedirects(responseCode)){
             http = redirectsConnect(http,request);
+            responseCode=http.getResponseCode();
         }
-        responseCode=http.getResponseCode();
 
         //重新判断
         if(!isSuccess(responseCode)){
@@ -216,7 +216,7 @@ final class SingleDownloadThreadTask extends HttpDownloadRequest implements IDow
      * @throws IOException
      */
     private void onResponseError(HttpURLConnection http,int responseCode) throws IOException{
-        String stream=readStringStream(http.getErrorStream());
+        String stream=readStringStream(http.getErrorStream(),XDownUtils.getInputCharset(http));
         listenerDisposer.onRequestError(this,responseCode,stream);
 
         XDownUtils.disconnectHttp(http);

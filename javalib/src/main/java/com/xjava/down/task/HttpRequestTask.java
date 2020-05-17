@@ -70,7 +70,7 @@ class HttpRequestTask extends BaseHttpRequest implements IRequest, IConnectReque
 
         int responseCode=http.getResponseCode();
         //是否需要重定向
-        if(isNeedRedirects(responseCode)){
+        while (isNeedRedirects(responseCode)){
             http=redirectsConnect(http,httpRequest);
             if(responseCode==307){
                 http.setRequestMethod("GET");
@@ -98,11 +98,11 @@ class HttpRequestTask extends BaseHttpRequest implements IRequest, IConnectReque
         Headers headers=getHeaders(http);
 
         if(isSuccess(responseCode)){
-            String stream=readStringStream(http.getInputStream());
+            String stream=readStringStream(http.getInputStream(),XDownUtils.getInputCharset(http));
             XDownUtils.disconnectHttp(http);
             listenerDisposer.onResponse(this,Response.builderSuccess(stream,responseCode,headers));
         } else{
-            String error=readStringStream(http.getErrorStream());
+            String error=readStringStream(http.getErrorStream(),XDownUtils.getInputCharset(http));
             XDownUtils.disconnectHttp(http);
             listenerDisposer.onResponse(this,Response.builderFailure(responseCode,headers,error));
             retryToRun();

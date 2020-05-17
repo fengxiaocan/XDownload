@@ -72,7 +72,7 @@ final class DownloadThreadRequest extends HttpDownloadRequest implements IDownlo
             final int code=http.getResponseCode();
             if(!isSuccess(code)){
                 //获取错误信息
-                String stream=readStringStream(http.getErrorStream());
+                String stream=readStringStream(http.getErrorStream(),XDownUtils.getInputCharset(http));
                 listenerDisposer.onRequestError(this,code,stream);
                 //断开请求
                 XDownUtils.disconnectHttp(http);
