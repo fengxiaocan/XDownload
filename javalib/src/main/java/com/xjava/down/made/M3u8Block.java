@@ -4,14 +4,18 @@ import java.io.Serializable;
 
 public class M3u8Block implements Serializable{
     private long contentLength;//文件大小
+    private String name;//名称
     private String url;//下载地址
 
     public M3u8Block(){
     }
 
-    public M3u8Block(long contentLength,String url){
-        this.contentLength=contentLength;
-        this.url=url;
+    public String getName(){
+        return name;
+    }
+
+    public void setName(String name){
+        this.name=name;
     }
 
     public long getContentLength(){

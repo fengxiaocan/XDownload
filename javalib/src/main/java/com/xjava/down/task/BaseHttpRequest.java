@@ -1,7 +1,6 @@
 package com.xjava.down.task;
 
 import com.xjava.down.core.BuilderURLConnection;
-import com.xjava.down.core.XHttpRequest;
 import com.xjava.down.data.Headers;
 import com.xjava.down.made.AutoRetryRecorder;
 import com.xjava.down.tool.XDownUtils;
@@ -51,19 +50,22 @@ abstract class BaseHttpRequest implements Runnable{
 
     /**
      * 重定向地址
+     *
      * @param connection
      * @param request
      * @return
      * @throws Exception
      */
-    protected HttpURLConnection redirectsConnect(HttpURLConnection connection,BuilderURLConnection request) throws Exception{
+    protected HttpURLConnection redirectsConnect(HttpURLConnection connection,BuilderURLConnection request)
+            throws Exception
+    {
         if(connection!=null){
             //获取指向
             String location=connection.getHeaderField("Location");
             //获取cookie
             String redirectsCookie=connection.getHeaderField("Set-Cookie");
             //获取重定向地址
-            String redirectsUrl=getRedirectsUrl(connection,location);
+            String redirectsUrl=getRedirectsUrl(connection.getURL(),location);
             //断开原来的连接
             XDownUtils.disconnectHttp(connection);
             HttpURLConnection http=request.buildConnect(redirectsUrl);
@@ -78,17 +80,16 @@ abstract class BaseHttpRequest implements Runnable{
     /**
      * 获取重定向的真实地址
      *
-     * @param connection
+     * @param url
      * @param location
      * @return
      */
-    private String getRedirectsUrl(HttpURLConnection connection,String location){
+    protected final String getRedirectsUrl(URL url,String location){
         String redirectsUrl;
         if(location.startsWith("http")){
             redirectsUrl=location;
-        } else {
-            URL url=connection.getURL();
-            StringBuilder builder = new StringBuilder(url.getProtocol());
+        } else{
+            StringBuilder builder=new StringBuilder(url.getProtocol());
             builder.append("://");
             builder.append(url.getHost());
 
@@ -99,7 +100,7 @@ abstract class BaseHttpRequest implements Runnable{
                 if(query!=null){
                     if(location.indexOf("?")>0){
                         builder.append("&");
-                    }else {
+                    } else{
                         builder.append("?");
                     }
                     builder.append(query);
@@ -112,7 +113,7 @@ abstract class BaseHttpRequest implements Runnable{
                     if(index>0){
                         String substring=urlPath.substring(0,index+1);
                         builder.append(substring);
-                    }else {
+                    } else{
                         builder.append(urlPath);
                     }
                     builder.append(location);
@@ -122,13 +123,13 @@ abstract class BaseHttpRequest implements Runnable{
                 if(query!=null){
                     if(location.indexOf("?")>0){
                         builder.append("&");
-                    }else {
+                    } else{
                         builder.append("?");
                     }
                     builder.append(query);
                 }
             }
-            redirectsUrl = builder.toString();
+            redirectsUrl=builder.toString();
         }
         return redirectsUrl;
     }
@@ -200,9 +201,10 @@ abstract class BaseHttpRequest implements Runnable{
             reader=new BufferedReader(new InputStreamReader(is,charset));
 
             StringBuilder builder=new StringBuilder();
-            String temp;
-            while((temp=reader.readLine())!=null){
-                builder.append(temp);
+            char[] temp=new char[1024*8];
+            int length;
+            while((length=reader.read(temp))>0){
+                builder.append(temp,0,length);
             }
             return builder.toString();
         } finally{

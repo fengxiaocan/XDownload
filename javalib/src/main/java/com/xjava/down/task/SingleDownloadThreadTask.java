@@ -201,6 +201,7 @@ final class SingleDownloadThreadTask extends HttpDownloadRequest implements IDow
 
     private boolean downReadInput(HttpURLConnection http,boolean append) throws IOException{
         try{
+            System.out.println(cacheFile.getAbsolutePath());
             FileOutputStream os=new FileOutputStream(cacheFile,append);
             return readInputStream(http.getInputStream(),os);
         } finally{

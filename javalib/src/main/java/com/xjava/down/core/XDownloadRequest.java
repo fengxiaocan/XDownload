@@ -320,10 +320,14 @@ public class XDownloadRequest extends BaseRequest implements HttpDownload,Builde
 
     @Override
     public String start(){
-        if(isUseMultiThread&&multiThreadCount>1){
-            ThreadTaskFactory.createDownloadThreadRequest(this);
-        } else{
-            ThreadTaskFactory.createSingleDownloadTask(this);
+        if(getConnectUrl().endsWith(".m3u8")){
+            ThreadTaskFactory.createM3u8DownloaderRequest(this);
+        }else{
+            if(isUseMultiThread&&multiThreadCount>1){
+                ThreadTaskFactory.createDownloadThreadRequest(this);
+            } else{
+                ThreadTaskFactory.createSingleDownloadTask(this);
+            }
         }
         return getTag();
     }

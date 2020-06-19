@@ -3,12 +3,14 @@ package com.xjava.down.made;
 import java.util.ArrayList;
 
 public class M3u8Memory{
-    protected String originalUrl;//原始地址
-    protected String readUrl;//重定向地址
     protected String identifier;//标记
-    protected String response;//响应报文
-    protected long length;//下载的文件长度
-    protected ArrayList<M3u8Block> blockList;
+    protected String originalUrl;//原始地址
+    protected String redirectUrl;//重定向地址
+    protected String originalResponse;//原始地址响应报文
+    protected String redirectResponse;//重定向地址响应报文
+
+    protected ArrayList<M3u8Block> blockList;//下载列表地址
+//    protected long length;//下载的文件长度
 
     public String getOriginalUrl(){
         return originalUrl;
@@ -18,12 +20,12 @@ public class M3u8Memory{
         this.originalUrl=originalUrl;
     }
 
-    public String getReadUrl(){
-        return readUrl;
+    public String getRedirectUrl(){
+        return redirectUrl;
     }
 
-    public void setReadUrl(String readUrl){
-        this.readUrl=readUrl;
+    public void setRedirectUrl(String redirectUrl){
+        this.redirectUrl=redirectUrl;
     }
 
     public String getIdentifier(){
@@ -34,13 +36,6 @@ public class M3u8Memory{
         this.identifier=identifier;
     }
 
-    public long getLength(){
-        return length;
-    }
-
-    public void setLength(long length){
-        this.length=length;
-    }
 
     public ArrayList<M3u8Block> getBlockList(){
         return blockList;
@@ -50,11 +45,19 @@ public class M3u8Memory{
         this.blockList=blockList;
     }
 
-    public String getResponse(){
-        return response;
+    public String getOriginalResponse(){
+        return originalResponse;
     }
 
-    public void setResponse(String response){
-        this.response=response;
+    public void setOriginalResponse(String originalResponse){
+        this.originalResponse=originalResponse;
+    }
+
+    public String getRedirectResponse(){
+        return redirectResponse;
+    }
+
+    public void setRedirectResponse(String redirectResponse){
+        this.redirectResponse=redirectResponse;
     }
 }

@@ -121,7 +121,7 @@ public class XDownUtils{
 
     public static String getFileName(XDownloadRequest xDownloadRequest){
         if(!isStringEmpty(xDownloadRequest.getSaveFile())){
-            return xDownloadRequest.getSaveFile();
+            return new File(xDownloadRequest.getSaveFile()).getName();
         } else{
             int defaultName=XDownload.get().config().getDefaultName();
             switch(defaultName){
@@ -145,6 +145,37 @@ public class XDownUtils{
                     } else{
                         return "";
                     }
+            }
+        }
+    }
+
+    /**
+     * 获取URL后缀名称
+     * @param url
+     * @return
+     */
+    public static String getUrlName(final String url){
+        final int index1=url.indexOf("?");
+        final String subUrl;
+        if(index1>0){
+            subUrl=url.substring(0,index1);
+        } else{
+            subUrl=url;
+        }
+        int index2=subUrl.lastIndexOf("/");
+        if(index2>0){
+            return subUrl.substring(index2+1);
+        } else{
+            final int index=url.lastIndexOf(".");
+            if(index>0){
+                String matches=getFirstMatches("\\.[A-Za-z0-9]*",url.substring(index));
+                if(matches==null){
+                    return getMd5(url)+".unknown";
+                } else{
+                    return getMd5(url)+matches;
+                }
+            } else{
+                return getMd5(url)+".unknown";
             }
         }
     }
@@ -232,10 +263,10 @@ public class XDownUtils{
      */
     public static File getTempFile(XDownloadRequest request){
         //保存路径
-        if(XDownUtils.isStringEmpty(request.getSaveFile())){
-            //没有设置保存文件名
-            return new File(request.getCacheDir(),XDownUtils.getFileName(request));
+        if(!XDownUtils.isStringEmpty(request.getSaveFile())){
+            return new File(request.getSaveFile());
         } else{
+            //没有设置保存文件名
             return new File(request.getCacheDir(),request.getIdentifier()+"_temp");
         }
     }

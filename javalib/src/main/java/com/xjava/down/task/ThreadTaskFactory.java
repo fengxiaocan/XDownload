@@ -34,6 +34,17 @@ public final class ThreadTaskFactory{
         requestTask.setTaskFuture(future);
     }
 
+    public static void createM3u8DownloaderRequest(XDownloadRequest request){
+        M3u8DownloaderRequest requestTask=new M3u8DownloaderRequest(request,
+                                                                    request.getOnDownloadConnectListener(),
+                                                                    request.getOnDownloadListener(),
+                                                                    request.getOnProgressListener(),
+                                                                    request.getOnSpeedListener());
+        Future future=ExecutorGather.newThreadExecutor().submit(requestTask);
+        XDownload.get().addDownload(request.getTag(),requestTask);
+        requestTask.setTaskFuture(future);
+    }
+
     public static void createHttpRequestTask(XHttpRequest request){
         HttpRequestTask requestTask=new HttpRequestTask(request,
                                                         request.getOnConnectListeners(),

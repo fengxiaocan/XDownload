@@ -119,7 +119,6 @@ abstract class HttpDownloadRequest extends BaseHttpRequest{
             if(isDelect){inputFile.delete();}
             return true;
         } else{
-            inputFile.delete();
             FileOutputStream output=null;
             FileInputStream input=null;
             try{
@@ -132,6 +131,7 @@ abstract class HttpDownloadRequest extends BaseHttpRequest{
                     output.write(bytes,0,length);
                     output.flush();
                 }
+                if(isDelect){inputFile.delete();}
                 return true;
             } finally{
                 XDownUtils.closeIo(input);
