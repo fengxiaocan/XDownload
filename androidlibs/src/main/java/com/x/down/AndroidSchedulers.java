@@ -3,7 +3,8 @@ package com.x.down;
 import android.os.Handler;
 import android.os.Looper;
 
-import com.xjava.down.dispatch.Schedulers;
+import com.x.down.dispatch.Schedulers;
+
 
 public final class AndroidSchedulers{
 

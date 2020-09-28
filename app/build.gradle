@@ -5,11 +5,11 @@ android {
     buildToolsVersion "29.0.3"
     defaultConfig {
         applicationId "com.x.test"
-        minSdkVersion 16
+        minSdkVersion 19
         targetSdkVersion 29
         versionCode 1
         versionName "1.0"
-        testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+        multiDexEnabled true
     }
     buildTypes {
         release {
@@ -17,16 +17,102 @@ android {
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
     }
+    compileOptions {
+        sourceCompatibility 1.8
+        targetCompatibility 1.8
+    }
 }
 
 dependencies {
     implementation fileTree(include: ['*.jar'], dir: 'libs')
     implementation 'androidx.appcompat:appcompat:1.1.0'
-    implementation 'com.google.android.material:material:1.0.0'
+//    implementation 'com.google.android.material:material:1.1.0'
     implementation 'androidx.constraintlayout:constraintlayout:1.1.3'
-    implementation 'androidx.navigation:navigation-fragment:2.0.0'
-    implementation 'androidx.navigation:navigation-ui:2.0.0'
-    implementation 'androidx.lifecycle:lifecycle-extensions:2.0.0'
+//    implementation 'androidx.navigation:navigation-fragment:2.3.0'
+//    implementation 'androidx.navigation:navigation-ui:2.3.0'
+//    implementation 'androidx.lifecycle:lifecycle-extensions:2.2.0'
 
-    implementation 'com.github.fengxiaocan:XDownload:0.1.6'
+    implementation 'androidx.multidex:multidex:latest.release'
+
+    implementation project(path: ':androidlibs')
+
+
+    //    debugImplementation 'com.github.whataa:pandora:v${RELEASE}'
+    //debug调试可视化工具
+//    debugImplementation "com.github.whataa:pandora:androidx_v2.0.4"
+//    releaseImplementation "com.github.whataa:pandora-no-op:latest.release"
+    implementation 'com.github.fengxiaocan:DebugBox:0.2.0'
+
+    implementation 'org.jsoup:jsoup:latest.release'
+    implementation 'io.reactivex.rxjava2:rxjava:latest.release'
+    implementation 'io.reactivex.rxjava2:rxandroid:latest.release'
+    implementation 'org.litepal.android:java:latest.release'
+
+    //iOS弹窗
+    implementation 'com.github.fengxiaocan:IosDialog:latest.release'
+    //上拉加载以及下拉刷新
+    implementation 'com.scwang.smartrefresh:SmartRefreshLayout:latest.release'
+    //permission权限处理器
+    implementation 'com.github.fengxiaocan:RxPermission:latest.release'
+    implementation 'com.github.fengxiaocan:RxDialog:latest.release'
+    implementation 'com.github.fengxiaocan:Tools:1.0.3'
+    implementation 'com.github.fengxiaocan:BaseApp:v6.0.3'
+    implementation 'com.github.fengxiaocan:RoundLayout:latest.release'
+    implementation 'com.github.fengxiaocan:CardLayout:1.1.3'
+
+    implementation 'com.yanzhenjie.permission:x:latest.release'
+
+    implementation 'com.squareup.retrofit2:retrofit:latest.release'
+    implementation 'com.squareup.okhttp3:okhttp:latest.release'
+    implementation 'com.google.code.gson:gson:latest.release'
+    //文件下载器
+    implementation 'com.liulishuo.filedownloader:library:latest.release'
+    //文件选择器
+    implementation 'com.github.fengxiaocan:FilePicker:v1.0.6'
+    //drawable xml 改为layout直接引用
+    implementation 'cn.cricin:folivora:latest.release'
+    //音乐播放的库
+    implementation 'com.lzx:StarrySkyJava:latest.release'
+    //适用于Android的粒子动画库
+    implementation 'com.github.ibrahimsn98:android-particles:latest.release'
+//    implementation 'com.github.doctoror.particlesdrawable:latest.release'
+    //Andorid 任意界面悬浮窗https://github.com/yhaolpz/FloatWindow
+    implementation 'com.github.yhaolpz:FloatWindow:latest.release'
+
+    implementation 'com.github.fengxiaocan:RecyclerHelper:2.1.4'//直接引用最新的
+    //快速保存
+    implementation 'com.github.fengxiaocan:SaveUtils:latest.release'//直接引用最新的
+    //支持跨进程、跨APP通信 https://github.com/JeremyLiao/LiveEventBus
+    implementation 'com.jeremyliao:live-event-bus-x:latest.release'
+    //开关按钮
+//    implementation 'ch.ielse:switchbutton:latest.release'
+    //图片选择库
+    implementation 'com.zhihu.android:matisse:latest.release'
+
+//    implementation 'com.github.chrisbanes:PhotoView:latest.release'
+    //状态栏染色器
+    implementation 'com.gyf.immersionbar:immersionbar:latest.release'
+
+    implementation 'com.github.bumptech.glide:glide:latest.release'
+    //下载库
+    implementation 'com.arialyy.aria:aria-core:latest.release'
+    annotationProcessor 'com.arialyy.aria:aria-compiler:latest.release'
+    //m3u8下载器
+    implementation 'com.jwkj:M3U8Manger:latest.release'
+    //m3u8下载器
+    implementation 'com.github.Jay-Goo:M3U8Downloader:latest.release'
+    //indicator
+    implementation 'com.shizhefei:ViewPagerIndicator:latest.release'
+
+    implementation 'me.samlss:broccoli:latest.release'
+
+    //完整版视频播放器引入
+    implementation 'com.shuyu:GSYVideoPlayer:latest.release'
+    //英文不自动换行的textview
+    implementation 'me.codeboy.android:align-text-view:2.3.2'
+
+    implementation 'org.jsoup:jsoup:latest.release'
+
+    implementation 'com.yanzhikai:TextPathView:latest.release'
+    implementation 'com.github.fengxiaocan:ScaleImageView:latest.release'
 }

@@ -2,41 +2,42 @@ package com.x.test;
 
 
 import android.os.Bundle;
-import android.util.DisplayMetrics;
 import android.util.Log;
-import android.util.TypedValue;
-import android.widget.LinearLayout;
-import android.widget.TextView;
 
 import androidx.appcompat.app.AppCompatActivity;
 
-public class MainActivity extends AppCompatActivity{
-    private TextView tv1;
-    private TextView tv2;
+import com.x.down.XDownload;
+import com.x.down.base.IDownloadRequest;
+import com.x.down.listener.OnDownloadListener;
+import com.x.down.listener.OnProgressListener;
+
+public class MainActivity extends AppCompatActivity {
 
     @Override
-    protected void onCreate(Bundle savedInstanceState){
+    protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-        tv1=findViewById(R.id.tv1);
-        tv2=findViewById(R.id.tv2);
-        DisplayMetrics metrics=getResources().getDisplayMetrics();
-        int widthPixels=metrics.widthPixels;
-        float scaledDensity=metrics.scaledDensity;
-        float densityDpi=metrics.densityDpi;
-        float xdpi=metrics.xdpi;
-        float density=metrics.density;
-        Log.e("noah","widthPixels="+widthPixels);
-        Log.e("noah","densityDpi="+densityDpi);
-        Log.e("noah","xdpi="+xdpi);
-        Log.e("noah","density="+density);
-        Log.e("noah","scaledDensity="+scaledDensity);
-        Log.e("noah","applyDimension 12="+TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_SP,12f,metrics));
-        Log.e("noah","(12*scaledDensity * (widthPixels/720f))="+(12*scaledDensity * (widthPixels/720f)));
-        Log.e("noah","(12sp*scaledDensity * (xdpi/360f))="+(12*scaledDensity * (xdpi/360f)));
-        Log.e("noah","(12sp*scaledDensity * (410f/360f))="+(12*scaledDensity * (410f/360f)));
-        tv1.setTextSize(TypedValue.COMPLEX_UNIT_PX,12*scaledDensity * (410f/360f));
-        tv2.setTextSize(TypedValue.COMPLEX_UNIT_PX,15*scaledDensity * (410f/360f));
+
+        XDownload.download("http://file0204.daimg.com/2020/2009/DAimG_2020091600079451KPKM.rar")
+                .setUseMultiThread(true)
+                .setMultiThreadCount(20)
+                .setOnProgressListener(new OnProgressListener() {
+                    @Override
+                    public void onProgress(IDownloadRequest request, float progress) {
+                        Log.e("noah","onProgress=" + (int) (100 * progress));
+                    }
+                })
+                .setDownloadListener(new OnDownloadListener() {
+                    @Override
+                    public void onComplete(IDownloadRequest iDownloadRequest) {
+                        Log.e("noah","onComplete");
+                    }
+
+                    @Override
+                    public void onFailure(IDownloadRequest iDownloadRequest) {
+                        Log.e("noah","onFailure");
+                    }
+                }).start();
     }
 
 }
