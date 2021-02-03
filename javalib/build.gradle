@@ -1,8 +1,33 @@
 apply plugin: 'java-library'
+apply plugin: 'com.github.johnrengelman.shadow'
+apply plugin: 'java'
 
-dependencies {
-    implementation fileTree(dir: 'libs', include: ['*.jar'])
+buildscript {
+    repositories {
+        jcenter()
+    }
+    dependencies {
+        //5.0.0 需要gradle 5.0+ 才可构建
+        classpath 'com.github.jengelman.gradle.plugins:shadow:+'
+    }
 }
 
-sourceCompatibility = "7"
-targetCompatibility = "7"
+shadowJar {
+//    manifest{
+//        //main 函数地址类
+//        attributes 'Main-Class': 'demo'
+//    }
+    baseName = 'javalib'
+    classifier = null
+    version = 'v1.0'
+//    dependencies {
+        //需要依赖的第三方lib
+        //include(dependency('baselib'))
+        //多个
+        //include(dependency('com.alibaba:fastjson:1.2.58'))
+//    }
+}
+
+dependencies {
+    api fileTree(dir: 'libs', include: ['*.jar'])
+}

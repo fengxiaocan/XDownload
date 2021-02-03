@@ -38,10 +38,10 @@ Java中使用方法:
                 .userAgent("UA")//默认UA
                 .isUseMultiThread(true)//是否使用多线程下载
                 .isUseBreakpointResume(true)//是否使用断点续传
-                .sameTimeDownloadCount(2)//同时下载的任务数
-                .multiThreadCount(5)//默认下载单个文件的多线程数
-                .multiThreadMaxSize(5*1024*1024)//默认多线程下载的单线程最大下载文件块大小,默认5MB
-                .multiThreadMinSize(100*1024)//默认多线程下载的单线程最大下载文件块大小,默认100KB
+                .downloadMaxTaskCount(2)//同时下载的任务数
+                .downloadMultiThreadSize(5)//默认下载单个文件的多线程数
+                .maxDownloadBlockSize(5*1024*1024)//默认多线程下载的单线程最大下载文件块大小,默认5MB
+                .minDownloadBlockSize(100*1024)//默认多线程下载的单线程最大下载文件块大小,默认100KB
                 .updateProgressTimes(1000)//更新进度条的间隔
                 .updateSpeedTimes(1000)//更新下载速度的间隔
                 .bufferedSize(1024*8)//写文件buff大小，该数值大小不能小于2048，数值变小，下载速度会变慢,默认10kB
